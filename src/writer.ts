@@ -39,7 +39,7 @@ export class ParquetWriter {
    * Convenience method to create a new buffered parquet writer that writes to
    * the specified file
    */
-  static async openFile(schema, path, opts) {
+  static async openFile(schema, path, opts?) {
     let outputStream = await parquet_util.osopen(path, opts);
     return ParquetWriter.openStream(schema, outputStream, opts);
   }
@@ -48,7 +48,7 @@ export class ParquetWriter {
    * Convenience method to create a new buffered parquet writer that writes to
    * the specified stream
    */
-  static async openStream(schema, outputStream, opts) {
+  static async openStream(schema, outputStream, opts?) {
     if (!opts) {
       opts = {};
     }
@@ -111,7 +111,7 @@ export class ParquetWriter {
    * method twice on the same object or add any rows after the close() method has
    * been called
    */
-  async close(callback) {
+  async close(callback?: () => void): Promise<void> {
     if (this.closed) {
       throw 'writer was closed';
     }

@@ -1,4 +1,6 @@
-# parquet.js
+# parquets
+
+TODO: TypeScript ...
 
 fully asynchronous, pure node.js implementation of the Parquet file format
 

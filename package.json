@@ -1,10 +1,10 @@
 {
-  "name": "parquetts",
-  "description": "fully asynchronous, pure JavaScript implementation of the Parquet file format",
+  "name": "parquets",
+  "description": "TypeScript implementation of the Parquet file format, based on parquet.js",
   "main": "lib/index.js",
   "version": "0.8.0",
-  "homepage": "https://github.com/ironSource/parquetjs",
-  "author": "ironSource <npm@ironsrc.com>",
+  "homepage": "https://github.com/kbajalc/parquets",
+  "author": "kbajalc@gmail.com",
   "license": "MIT",
   "keywords": [
     "dremel",
@@ -12,7 +12,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/ironSource/parquetjs.git"
+    "url": "git://github.com/kbajalc/parquets.git"
   },
   "dependencies": {
     "brotli": "^1.3.0",

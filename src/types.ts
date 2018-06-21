@@ -1,7 +1,42 @@
 'use strict';
 const BSON = require('bson');
 
-export const PARQUET_LOGICAL_TYPES = {
+export type ParquetType =
+  'BOOLEAN'
+  | 'INT32'
+  | 'INT64'
+  | 'INT96'
+  | 'FLOAT'
+  | 'DOUBLE'
+  | 'BYTE_ARRAY'
+  | 'FIXED_LEN_BYTE_ARRAY'
+  | 'UTF8'
+  | 'TIME_MILLIS'
+  | 'TIME_MICROS'
+  | 'DATE'
+  | 'TIMESTAMP_MILLIS'
+  | 'TIMESTAMP_MICROS'
+  | 'UINT_8'
+  | 'UINT_16'
+  | 'UINT_32'
+  | 'UINT_64'
+  | 'INT_8'
+  | 'INT_16'
+  | 'INT_32'
+  | 'INT_64'
+  | 'JSON'
+  | 'BSON'
+  | 'INTERVAL';
+
+export interface TypeDef {
+  primitiveType: ParquetType;
+  originalType?: ParquetType;
+  typeLength?: number;
+  toPrimitive: Function;
+  fromPrimitive?: Function;
+}
+
+export const PARQUET_LOGICAL_TYPES: Record<string, TypeDef> = {
   'BOOLEAN': {
     primitiveType: 'BOOLEAN',
     toPrimitive: toPrimitive_BOOLEAN,
@@ -146,7 +181,7 @@ export function toPrimitive(type, value) {
  * Convert a value from it's internal/underlying primitive representation to
  * the native representation
  */
-export function fromPrimitive(type, value) {
+export function fromPrimitive(type: ParquetType, value) {
   if (!(type in PARQUET_LOGICAL_TYPES)) {
     throw 'invalid type: ' + type;
   }

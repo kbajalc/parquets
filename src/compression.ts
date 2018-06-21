@@ -4,6 +4,8 @@ import snappy = require('snappyjs');
 import lzo = require('lzo');
 import brotli = require('brotli');
 
+export type ParquetCompression = 'UNCOMPRESSED' | 'GZIP' | 'SNAPPY' | 'LZO' | 'BROTLI';
+
 export const PARQUET_COMPRESSION_METHODS = {
   'UNCOMPRESSED': {
     deflate: deflate_identity,

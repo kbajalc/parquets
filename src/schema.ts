@@ -1,20 +1,50 @@
 'use strict';
-import parquet_codec = require('./codec');
-import parquet_compression = require('./compression');
-import parquet_types = require('./types');
+import { ParquetCodec, PARQUET_CODEC } from './codec';
+import { ParquetCompression, PARQUET_COMPRESSION_METHODS } from './compression';
+import { ParquetType, PARQUET_LOGICAL_TYPES } from './types';
+
+export type RepetitionType = 'REQUIRED' | 'OPTIONAL' | 'REPEATED';
+
+export interface SchemaDefinition {
+  [string: string]: {
+    type: ParquetType,
+    typeLength?: number,
+    encoding?: ParquetCodec,
+    compression?: ParquetCompression,
+    optional?: boolean,
+    repeated?: boolean,
+    fields?: SchemaDefinition
+  }
+}
+
+export interface FieldDefinition {
+  name: string;
+  path: string[];
+  primitiveType?: ParquetType;
+  originalType?: ParquetType;
+  repetitionType: RepetitionType;
+  typeLength?: number;
+  encoding?: ParquetCodec;
+  compression?: ParquetCompression;
+  rLevelMax: number;
+  dLevelMax: number;
+  isNested?: boolean;
+  fieldCount?: number;
+  fields?: Record<string, FieldDefinition>;
+}
 
 /**
  * A parquet file schema
  */
 export class ParquetSchema {
-  public schema: any;
-  public fields: any;
-  public fieldList: any;
+  public schema: SchemaDefinition;
+  public fields: Record<string, FieldDefinition>;
+  public fieldList: FieldDefinition[];
 
   /**
    * Create a new schema from a JSON schema definition
    */
-  constructor(schema) {
+  constructor(schema: SchemaDefinition) {
     this.schema = schema;
     this.fields = buildFields(schema);
     this.fieldList = listFields(this.fields);
@@ -23,7 +53,9 @@ export class ParquetSchema {
   /**
    * Retrieve a field definition
    */
-  findField(path) {
+  findField(path: string): FieldDefinition;
+  findField(path: string[]): FieldDefinition;
+  findField(path: any): FieldDefinition {
     if (path.constructor !== Array) {
       path = path.split(",");
     } else {
@@ -41,7 +73,9 @@ export class ParquetSchema {
   /**
    * Retrieve a field definition and all the field's ancestors
    */
-  findFieldBranch(path) {
+  findFieldBranch(path: string): FieldDefinition[];
+  findFieldBranch(path: string[]): FieldDefinition[];
+  findFieldBranch(path: any): any[] {
     if (path.constructor !== Array) {
       path = path.split(",");
     }
@@ -61,7 +95,7 @@ export class ParquetSchema {
 
 };
 
-function buildFields(schema, rLevelParentMax?, dLevelParentMax?, path?): any {
+function buildFields(schema: SchemaDefinition, rLevelParentMax?: number, dLevelParentMax?: number, path?: string[]): Record<string, FieldDefinition> {
   if (!rLevelParentMax) {
     rLevelParentMax = 0;
   }
@@ -74,7 +108,7 @@ function buildFields(schema, rLevelParentMax?, dLevelParentMax?, path?): any {
     path = [];
   }
 
-  let fieldList = {};
+  let fieldList: Record<string, FieldDefinition> = {};
   for (let name in schema) {
     const opts = schema[name];
 
@@ -84,12 +118,11 @@ function buildFields(schema, rLevelParentMax?, dLevelParentMax?, path?): any {
     let rLevelMax = rLevelParentMax;
     let dLevelMax = dLevelParentMax;
 
-    let repetitionType = 'REQUIRED';
+    let repetitionType: RepetitionType = 'REQUIRED';
     if (!required) {
       repetitionType = 'OPTIONAL';
       ++dLevelMax;
     }
-
     if (repeated) {
       repetitionType = 'REPEATED';
       ++rLevelMax;
@@ -120,7 +153,7 @@ function buildFields(schema, rLevelParentMax?, dLevelParentMax?, path?): any {
     }
 
     /* field type */
-    const typeDef = parquet_types.PARQUET_LOGICAL_TYPES[opts.type];
+    const typeDef: any = PARQUET_LOGICAL_TYPES[opts.type];
     if (!typeDef) {
       throw 'invalid parquet type: ' + opts.type;
     }
@@ -130,15 +163,15 @@ function buildFields(schema, rLevelParentMax?, dLevelParentMax?, path?): any {
       opts.encoding = 'PLAIN';
     }
 
-    if (!(opts.encoding in parquet_codec)) {
-      throw 'unsupported parquet encoding: ' + opts.encodig;
+    if (!(opts.encoding in PARQUET_CODEC)) {
+      throw 'unsupported parquet encoding: ' + opts.encoding;
     }
 
     if (!opts.compression) {
       opts.compression = 'UNCOMPRESSED';
     }
 
-    if (!(opts.compression in parquet_compression.PARQUET_COMPRESSION_METHODS)) {
+    if (!(opts.compression in PARQUET_COMPRESSION_METHODS)) {
       throw 'unsupported compression method: ' + opts.compression;
     }
 
@@ -160,8 +193,8 @@ function buildFields(schema, rLevelParentMax?, dLevelParentMax?, path?): any {
   return fieldList;
 }
 
-function listFields(fields) {
-  let list = [];
+function listFields(fields: Record<string, FieldDefinition>): FieldDefinition[] {
+  let list: FieldDefinition[] = [];
 
   for (let k in fields) {
     list.push(fields[k]);
