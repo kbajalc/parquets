@@ -1,0 +1,94 @@
+export type TODO = any;
+
+export type ParquetCodec = 'PLAIN' | 'RLE';
+export type ParquetCompression = 'UNCOMPRESSED' | 'GZIP' | 'SNAPPY' | 'LZO' | 'BROTLI';
+export type RepetitionType = 'REQUIRED' | 'OPTIONAL' | 'REPEATED';
+export type ParquetType =
+  'BOOLEAN'
+  | 'INT32'
+  | 'INT64'
+  | 'INT96'
+  | 'FLOAT'
+  | 'DOUBLE'
+  | 'BYTE_ARRAY'
+  | 'FIXED_LEN_BYTE_ARRAY'
+  | 'UTF8'
+  | 'TIME_MILLIS'
+  | 'TIME_MICROS'
+  | 'DATE'
+  | 'TIMESTAMP_MILLIS'
+  | 'TIMESTAMP_MICROS'
+  | 'UINT_8'
+  | 'UINT_16'
+  | 'UINT_32'
+  | 'UINT_64'
+  | 'INT_8'
+  | 'INT_16'
+  | 'INT_32'
+  | 'INT_64'
+  | 'JSON'
+  | 'BSON'
+  | 'INTERVAL';
+
+export interface TypeDef {
+  primitiveType: ParquetType;
+  originalType?: ParquetType;
+  typeLength?: number;
+  toPrimitive: Function;
+  fromPrimitive?: Function;
+}
+
+export interface SchemaDefinition {
+  [string: string]: {
+    type?: ParquetType,
+    typeLength?: number,
+    encoding?: ParquetCodec,
+    compression?: ParquetCompression,
+    optional?: boolean,
+    repeated?: boolean,
+    fields?: SchemaDefinition
+  }
+}
+
+export interface FieldDefinition {
+  name: string;
+  path: string[];
+  primitiveType?: ParquetType;
+  originalType?: ParquetType;
+  repetitionType: RepetitionType;
+  typeLength?: number;
+  encoding?: ParquetCodec;
+  compression?: ParquetCompression;
+  rLevelMax: number;
+  dLevelMax: number;
+  isNested?: boolean;
+  fieldCount?: number;
+  fields?: Record<string, FieldDefinition>;
+}
+
+export interface BufferType {
+  rowCount?: number,
+  columnData?: Record<string, ColumnData>
+}
+
+export interface ColumnData {
+  dlevels: number[];
+  rlevels: number[];
+  values: any[];
+  count: number;
+}
+
+export interface CursorType {
+  buffer: Buffer;
+  offset: number,
+  size: number
+}
+
+export interface WriteStreamOptions {
+  flags?: string;
+  encoding?: string;
+  fd?: number;
+  mode?: number;
+  autoClose?: boolean;
+  start?: number;
+}

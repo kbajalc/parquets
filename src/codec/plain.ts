@@ -1,7 +1,7 @@
-'use strict';
-const INT53 = require('int53')
+import { FieldDefinition, ParquetType, TODO } from "../declare";
+import INT53 = require('int53')
 
-function encodeValues_BOOLEAN(values) {
+function encodeValues_BOOLEAN(values: boolean[]): Buffer {
   let buf = new Buffer(Math.ceil(values.length / 8));
   buf.fill(0);
 
@@ -14,8 +14,8 @@ function encodeValues_BOOLEAN(values) {
   return buf;
 }
 
-function decodeValues_BOOLEAN(cursor, count) {
-  let values = [];
+function decodeValues_BOOLEAN(cursor: TODO, count: number): boolean[] {
+  let values: boolean[] = [];
 
   for (let i = 0; i < count; ++i) {
     let b = cursor.buffer[cursor.offset + Math.floor(i / 8)];
@@ -26,7 +26,7 @@ function decodeValues_BOOLEAN(cursor, count) {
   return values;
 }
 
-function encodeValues_INT32(values) {
+function encodeValues_INT32(values: number[]): Buffer {
   let buf = new Buffer(4 * values.length);
   for (let i = 0; i < values.length; i++) {
     buf.writeInt32LE(values[i], i * 4)
@@ -35,8 +35,8 @@ function encodeValues_INT32(values) {
   return buf;
 }
 
-function decodeValues_INT32(cursor, count) {
-  let values = [];
+function decodeValues_INT32(cursor: TODO, count: number): number[] {
+  let values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     values.push(cursor.buffer.readInt32LE(cursor.offset));
@@ -46,7 +46,7 @@ function decodeValues_INT32(cursor, count) {
   return values;
 }
 
-function encodeValues_INT64(values) {
+function encodeValues_INT64(values: number[]): Buffer {
   let buf = new Buffer(8 * values.length);
   for (let i = 0; i < values.length; i++) {
     INT53.writeInt64LE(values[i], buf, i * 8);
@@ -55,8 +55,8 @@ function encodeValues_INT64(values) {
   return buf;
 }
 
-function decodeValues_INT64(cursor, count) {
-  let values = [];
+function decodeValues_INT64(cursor: TODO, count: number): number[] {
+  let values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     values.push(INT53.readInt64LE(cursor.buffer, cursor.offset));
@@ -66,7 +66,7 @@ function decodeValues_INT64(cursor, count) {
   return values;
 }
 
-function encodeValues_INT96(values) {
+function encodeValues_INT96(values: number[]): Buffer {
   let buf = new Buffer(12 * values.length);
 
   for (let i = 0; i < values.length; i++) {
@@ -82,8 +82,8 @@ function encodeValues_INT96(values) {
   return buf;
 }
 
-function decodeValues_INT96(cursor, count) {
-  let values = [];
+function decodeValues_INT96(cursor: TODO, count: number): number[] {
+  let values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     const low = INT53.readInt64LE(cursor.buffer, cursor.offset);
@@ -101,7 +101,7 @@ function decodeValues_INT96(cursor, count) {
   return values;
 }
 
-function encodeValues_FLOAT(values) {
+function encodeValues_FLOAT(values: number[]): Buffer {
   let buf = new Buffer(4 * values.length);
   for (let i = 0; i < values.length; i++) {
     buf.writeFloatLE(values[i], i * 4)
@@ -110,8 +110,8 @@ function encodeValues_FLOAT(values) {
   return buf;
 }
 
-function decodeValues_FLOAT(cursor, count) {
-  let values = [];
+function decodeValues_FLOAT(cursor: TODO, count: number): number[] {
+  let values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     values.push(cursor.buffer.readFloatLE(cursor.offset));
@@ -121,7 +121,7 @@ function decodeValues_FLOAT(cursor, count) {
   return values;
 }
 
-function encodeValues_DOUBLE(values) {
+function encodeValues_DOUBLE(values: number[]): Buffer {
   let buf = new Buffer(8 * values.length);
   for (let i = 0; i < values.length; i++) {
     buf.writeDoubleLE(values[i], i * 8)
@@ -130,8 +130,8 @@ function encodeValues_DOUBLE(values) {
   return buf;
 }
 
-function decodeValues_DOUBLE(cursor, count) {
-  let values = [];
+function decodeValues_DOUBLE(cursor, count): number[] {
+  let values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     values.push(cursor.buffer.readDoubleLE(cursor.offset));
@@ -141,7 +141,7 @@ function decodeValues_DOUBLE(cursor, count) {
   return values;
 }
 
-function encodeValues_BYTE_ARRAY(values) {
+function encodeValues_BYTE_ARRAY(values): Buffer {
   let buf_len = 0;
   for (let i = 0; i < values.length; i++) {
     values[i] = Buffer.from(values[i]);
@@ -160,7 +160,7 @@ function encodeValues_BYTE_ARRAY(values) {
   return buf;
 }
 
-function decodeValues_BYTE_ARRAY(cursor, count) {
+function decodeValues_BYTE_ARRAY(cursor: TODO, count: number): TODO[] {
   let values = [];
 
   for (let i = 0; i < count; ++i) {
@@ -175,7 +175,7 @@ function decodeValues_BYTE_ARRAY(cursor, count) {
 
 
 
-function encodeValues_FIXED_LEN_BYTE_ARRAY(values, opts) {
+function encodeValues_FIXED_LEN_BYTE_ARRAY(values: TODO, opts: FieldDefinition): Buffer {
   if (!opts.typeLength) {
     throw "missing option: typeLength (required for FIXED_LEN_BYTE_ARRAY)";
   }
@@ -191,7 +191,7 @@ function encodeValues_FIXED_LEN_BYTE_ARRAY(values, opts) {
   return Buffer.concat(values);
 }
 
-function decodeValues_FIXED_LEN_BYTE_ARRAY(cursor, count, opts) {
+function decodeValues_FIXED_LEN_BYTE_ARRAY(cursor: TODO, count: number, opts: FieldDefinition): TODO[] {
   let values = [];
 
   if (!opts.typeLength) {
@@ -206,69 +206,49 @@ function decodeValues_FIXED_LEN_BYTE_ARRAY(cursor, count, opts) {
   return values;
 }
 
-export function encodeValues(type, values, opts) {
+export function encodeValues(type: ParquetType, values, opts): Buffer {
   switch (type) {
-
     case 'BOOLEAN':
       return encodeValues_BOOLEAN(values);
-
     case 'INT32':
       return encodeValues_INT32(values);
-
     case 'INT64':
       return encodeValues_INT64(values);
-
     case 'INT96':
       return encodeValues_INT96(values);
-
     case 'FLOAT':
       return encodeValues_FLOAT(values);
-
     case 'DOUBLE':
       return encodeValues_DOUBLE(values);
-
     case 'BYTE_ARRAY':
       return encodeValues_BYTE_ARRAY(values);
-
     case 'FIXED_LEN_BYTE_ARRAY':
       return encodeValues_FIXED_LEN_BYTE_ARRAY(values, opts);
-
     default:
       throw 'unsupported type: ' + type;
-
   }
 }
 
-export function decodeValues(type, cursor, count, opts) {
+export function decodeValues(type: ParquetType, cursor: TODO, count: number, opts: TODO): any[] {
   switch (type) {
-
     case 'BOOLEAN':
       return decodeValues_BOOLEAN(cursor, count);
-
     case 'INT32':
       return decodeValues_INT32(cursor, count);
-
     case 'INT64':
       return decodeValues_INT64(cursor, count);
-
     case 'INT96':
       return decodeValues_INT96(cursor, count);
-
     case 'FLOAT':
       return decodeValues_FLOAT(cursor, count);
-
     case 'DOUBLE':
       return decodeValues_DOUBLE(cursor, count);
-
     case 'BYTE_ARRAY':
       return decodeValues_BYTE_ARRAY(cursor, count);
-
     case 'FIXED_LEN_BYTE_ARRAY':
       return decodeValues_FIXED_LEN_BYTE_ARRAY(cursor, count, opts);
-
     default:
       throw 'unsupported type: ' + type;
-
   }
 }
 

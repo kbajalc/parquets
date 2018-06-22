@@ -1,6 +1,7 @@
 import varint = require('varint')
+import { ParquetType, TODO } from '../declare';
 
-function encodeRunBitpacked(values, opts) {
+function encodeRunBitpacked(values: number[], opts: TODO): Buffer {
   if (values.length % 8 !== 0) {
     throw 'must be a multiple of 8';
   }
@@ -18,7 +19,7 @@ function encodeRunBitpacked(values, opts) {
   ]);
 }
 
-function encodeRunRepeated(value, count, opts) {
+function encodeRunRepeated(value: number, count: number, opts: TODO) {
   let buf = Buffer.alloc(Math.ceil(opts.bitWidth / 8));
 
   for (let i = 0; i < buf.length; ++i) {
@@ -32,7 +33,7 @@ function encodeRunRepeated(value, count, opts) {
   ]);
 }
 
-export function encodeValues(type, values, opts) {
+export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buffer {
   if (!('bitWidth' in opts)) {
     throw 'bitWidth is required';
   }
@@ -96,7 +97,7 @@ export function encodeValues(type, values, opts) {
   return envelope;
 }
 
-function decodeRunBitpacked(cursor, count, opts) {
+function decodeRunBitpacked(cursor: TODO, count: number, opts: TODO): number[] {
   if (count % 8 !== 0) {
     throw 'must be a multiple of 8';
   }
@@ -112,7 +113,7 @@ function decodeRunBitpacked(cursor, count, opts) {
   return values;
 }
 
-function decodeRunRepeated(cursor, count, opts) {
+function decodeRunRepeated(cursor: TODO, count: number, opts: TODO): number[] {
   let value = 0;
   for (let i = 0; i < Math.ceil(opts.bitWidth / 8); ++i) {
     value << 8;
@@ -123,7 +124,7 @@ function decodeRunRepeated(cursor, count, opts) {
   return new Array(count).fill(value);
 }
 
-export function decodeValues(type, cursor, count, opts) {
+export function decodeValues(type: ParquetType, cursor: TODO, count: number, opts: TODO): number[] {
   if (!('bitWidth' in opts)) {
     throw 'bitWidth is required';
   }

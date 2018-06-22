@@ -1,12 +1,12 @@
-'use strict';
 import fs = require('fs');
 import { TBufferedTransport, TCompactProtocol, TFramedTransport } from 'thrift';
+import { TODO, WriteStreamOptions } from './declare';
 
 /**
  * Helper function that serializes a thrift object into a buffer
  */
-export function serializeThrift(obj: Buffer) {
-  let output = []
+export function serializeThrift(obj: any /* PageHeader | ColumnMetaData | FileMetaData */): Buffer {
+  let output: Buffer[] = []
 
   let transport = new TBufferedTransport(null, (buf) => {
     output.push(buf)
@@ -31,10 +31,34 @@ export function decodeThrift(obj: any, buf: Buffer, offset?: number) {
   return transport.readPos - offset;
 }
 
+// export function decodeFileMetadata(buf: Buffer, offset?: number) {
+//   if (!offset) {
+//     offset = 0;
+//   }
+
+//   let transport = new TFramedTransport(buf);
+//   transport.readPos = offset;
+//   let protocol = new TCompactProtocol(transport);
+//   let metadata = FileMetaData.read(protocol);
+//   return { pos: transport.readPos - offset, metadata };
+// }
+
+// export function decodeHeader(buf: Buffer, offset?: number) {
+//   if (!offset) {
+//     offset = 0;
+//   }
+
+//   let transport = new TFramedTransport(buf);
+//   transport.readPos = offset;
+//   let protocol = new TCompactProtocol(transport);
+//   let pageHeader = PageHeader.read(protocol);
+//   return { length: transport.readPos - offset, pageHeader }
+// }
+
 /**
  * Get the number of bits required to store a given value
  */
-export function getBitWidth(val: number) {
+export function getBitWidth(val: number): number {
   if (val === 0) {
     return 0;
   } else {
@@ -45,17 +69,16 @@ export function getBitWidth(val: number) {
 /**
  * FIXME not ideal that this is linear
  */
-export function getThriftEnum(klass: Object, value: number | string): any {
+export function getThriftEnum(klass: Object, value: number | string): string {
   for (let k in klass) {
     if (klass[k] === value) {
       return k;
     }
   }
-
   throw 'Invalid ENUM value';
 }
 
-export function fopen(filePath: string) {
+export function fopen(filePath: string): Promise<number> {
   return new Promise((resolve, reject) => {
     fs.open(filePath, 'r', (err, fd) => {
       if (err) {
@@ -79,7 +102,7 @@ export function fstat(filePath: string): Promise<fs.Stats> {
   });
 }
 
-export function fread(fd: number, position, length) {
+export function fread(fd: number, position: number, length: number): Promise<Buffer> {
   let buffer = Buffer.alloc(length);
 
   return new Promise((resolve, reject) => {
@@ -93,19 +116,19 @@ export function fread(fd: number, position, length) {
   });
 }
 
-export function fclose(fd: number) {
+export function fclose(fd: number): Promise<void> {
   return new Promise((resolve, reject) => {
     fs.close(fd, (err) => {
       if (err) {
         reject(err);
       } else {
-        resolve(err);
+        resolve();
       }
     });
   });
 }
 
-export function oswrite(os, buf: Buffer) {
+export function oswrite(os: fs.WriteStream, buf: Buffer): Promise<void> {
   return new Promise((resolve, reject) => {
     os.write(buf, (err) => {
       if (err) {
@@ -117,9 +140,9 @@ export function oswrite(os, buf: Buffer) {
   });
 }
 
-export function osclose(os) {
+export function osclose(os: fs.WriteStream): Promise<void> {
   return new Promise((resolve, reject) => {
-    os.close((err) => {
+    (os as TODO).close((err) => {
       if (err) {
         reject(err);
       } else {
@@ -129,7 +152,7 @@ export function osclose(os) {
   });
 }
 
-export function osopen(path, opts) {
+export function osopen(path: string, opts: WriteStreamOptions): Promise<fs.WriteStream> {
   return new Promise((resolve, reject) => {
     let outputStream = fs.createWriteStream(path, opts);
 
@@ -143,7 +166,7 @@ export function osopen(path, opts) {
   });
 }
 
-export function fieldIndexOf(arr, elem) {
+export function fieldIndexOf(arr: any[][], elem: any[]): number {
   for (let j = 0; j < arr.length; ++j) {
     if (arr[j].length !== elem.length) {
       continue;

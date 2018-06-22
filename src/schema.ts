@@ -1,37 +1,7 @@
-'use strict';
-import { ParquetCodec, PARQUET_CODEC } from './codec';
-import { ParquetCompression, PARQUET_COMPRESSION_METHODS } from './compression';
-import { ParquetType, PARQUET_LOGICAL_TYPES } from './types';
-
-export type RepetitionType = 'REQUIRED' | 'OPTIONAL' | 'REPEATED';
-
-export interface SchemaDefinition {
-  [string: string]: {
-    type: ParquetType,
-    typeLength?: number,
-    encoding?: ParquetCodec,
-    compression?: ParquetCompression,
-    optional?: boolean,
-    repeated?: boolean,
-    fields?: SchemaDefinition
-  }
-}
-
-export interface FieldDefinition {
-  name: string;
-  path: string[];
-  primitiveType?: ParquetType;
-  originalType?: ParquetType;
-  repetitionType: RepetitionType;
-  typeLength?: number;
-  encoding?: ParquetCodec;
-  compression?: ParquetCompression;
-  rLevelMax: number;
-  dLevelMax: number;
-  isNested?: boolean;
-  fieldCount?: number;
-  fields?: Record<string, FieldDefinition>;
-}
+import { PARQUET_CODEC } from './codec';
+import { PARQUET_COMPRESSION_METHODS } from './compression';
+import { FieldDefinition, RepetitionType, SchemaDefinition } from './declare';
+import { PARQUET_LOGICAL_TYPES } from './types';
 
 /**
  * A parquet file schema

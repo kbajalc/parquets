@@ -4,7 +4,7 @@
 const chai = require('chai');
 const assert = chai.assert;
 const thrift = require('thrift');
-const parquet_thrift = require('../gen/parquet_types')
+const parquet_thrift = require('../lib/gen/parquet_types')
 const parquet_util = require('../lib/util')
 
 describe('Thrift', function () {

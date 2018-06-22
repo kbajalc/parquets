@@ -25,6 +25,8 @@
     "varint": "^5.0.0"
   },
   "devDependencies": {
+    "@creditkarma/thrift-typescript": "^2.0.0",
+    "@types/bson": "^1.0.9",
     "@types/node": "^10.3.4",
     "chai": "^4.1.2",
     "mocha": "^3.5.3"
@@ -33,7 +35,8 @@
     "clean": "rm -rf ./lib",
     "build": "rm -rf ./lib ; tsc -p .",
     "watch": "rm -rf ./lib ; tsc -p . --watch",
-    "test": "mocha"
+    "test": "mocha",
+    "gen": "npx thrift-typescript --target apache --rootDir . --sourceDir . --outDir codegen parquet.thrift"
   },
   "engines": {
     "node": ">=7.6"
