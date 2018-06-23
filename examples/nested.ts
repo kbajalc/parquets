@@ -1,11 +1,10 @@
-'use strict';
-const parquet = require('..');
+import { ParquetReader, ParquetSchema, ParquetWriter } from '../lib';
 
 process.on('unhandledRejection', r => console.error(r));
 
 // write a new file 'fruits.parquet'
 async function example() {
-  let schema = new parquet.ParquetSchema({
+  let schema = new ParquetSchema({
     name: { type: 'UTF8' },
     price: { type: 'DOUBLE' },
     colour: { type: 'UTF8', repeated: true },
@@ -18,12 +17,12 @@ async function example() {
     },
   });
 
-  let writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet');
+  let writer = await ParquetWriter.openFile(schema, 'fruits.parquet');
 
   await writer.appendRow({
     name: 'apples',
     price: 2.6,
-    colour: [ 'green', 'red' ],
+    colour: ['green', 'red'],
     stock: [
       { quantity: 10, warehouse: "A" },
       { quantity: 20, warehouse: "B" }
@@ -33,7 +32,7 @@ async function example() {
   await writer.appendRow({
     name: 'oranges',
     price: 2.7,
-    colour: [ 'orange' ],
+    colour: ['orange'],
     stock: {
       quantity: [50, 75],
       warehouse: "X"
@@ -43,12 +42,12 @@ async function example() {
   await writer.appendRow({
     name: 'kiwi',
     price: 4.2,
-    colour: [ 'green', 'brown' ]
+    colour: ['green', 'brown']
   });
 
   await writer.close();
 
-  let reader = await parquet.ParquetReader.openFile('fruits.parquet');
+  let reader = await ParquetReader.openFile('fruits.parquet');
 
   {
     let cursor = reader.getCursor();

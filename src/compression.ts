@@ -68,7 +68,7 @@ function deflate_brotli(value: Buffer): Buffer {
 }
 
 function deflate_lz4(value: Buffer): Buffer {
-  return lz4.compress(value);
+  return lz4.encode(value);
 }
 
 /**
@@ -99,7 +99,7 @@ function inflate_lzo(value: Buffer): Buffer {
 }
 
 function inflate_lz4(value: Buffer): Buffer {
-  return lz4.decompress(value);
+  return lz4.decode(value);
 }
 
 function inflate_brotli(value: Buffer): Buffer {

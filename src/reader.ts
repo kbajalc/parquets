@@ -1,10 +1,10 @@
-import parquet_thrift = require('./gen/parquet_types')
-import parquet_shredder = require('./shred')
-import parquet_util = require('./util')
 import { PARQUET_CODEC } from './codec';
+import * as Compression from './compression';
 import { BufferType, ColumnData, CursorType, ParquetCodec, ParquetType, SchemaDefinition, TODO } from './declare';
+import { CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageType, Type } from './gen/parquet_types';
 import { ParquetSchema } from './schema';
-import parquet_compression = require('./compression')
+import * as Shred from './shred';
+import * as Util from './util';
 
 /**
  * Parquet File Magic String
@@ -64,7 +64,7 @@ export class ParquetCursor {
         this.metadata.row_groups[this.rowGroupIndex],
         this.columnList);
 
-      this.rowGroup = parquet_shredder.materializeRecords(this.schema, rowBuffer);
+      this.rowGroup = Shred.materializeRecords(this.schema, rowBuffer);
       this.rowGroupIndex++;
     }
 
@@ -136,7 +136,7 @@ export class ParquetReader {
    * from disk. An empty array or no value implies all columns. A list of column
    * names means that only those columns should be loaded from disk.
    */
-  getCursor(columnList: (string | string[])[]): ParquetCursor {
+  getCursor(columnList?: (string | string[])[]): ParquetCursor {
     if (!columnList) {
       columnList = [];
     }
@@ -199,11 +199,11 @@ export class ParquetReader {
 export class ParquetEnvelopeReader {
 
   static async openFile(filePath): Promise<ParquetEnvelopeReader> {
-    let fileStat = await parquet_util.fstat(filePath);
-    let fileDescriptor = await parquet_util.fopen(filePath);
+    let fileStat = await Util.fstat(filePath);
+    let fileDescriptor = await Util.fopen(filePath);
 
-    let readFn = parquet_util.fread.bind(undefined, fileDescriptor);
-    let closeFn = parquet_util.fclose.bind(undefined, fileDescriptor);
+    let readFn = Util.fread.bind(undefined, fileDescriptor);
+    let closeFn = Util.fclose.bind(undefined, fileDescriptor);
 
     return new ParquetEnvelopeReader(readFn, closeFn, fileStat.size);
   }
@@ -233,7 +233,7 @@ export class ParquetEnvelopeReader {
       const colMetadata = colChunk.meta_data;
       const colKey = colMetadata.path_in_schema;
 
-      if (columnList.length > 0 && parquet_util.fieldIndexOf(columnList, colKey) < 0) {
+      if (columnList.length > 0 && Util.fieldIndexOf(columnList, colKey) < 0) {
         continue;
       }
 
@@ -249,12 +249,12 @@ export class ParquetEnvelopeReader {
     }
 
     let field = schema.findField(colChunk.meta_data.path_in_schema);
-    let type = parquet_util.getThriftEnum(
-      parquet_thrift.Type,
+    let type = Util.getThriftEnum(
+      Type,
       colChunk.meta_data.type);
 
-    let compression = parquet_util.getThriftEnum(
-      parquet_thrift.CompressionCodec,
+    let compression = Util.getThriftEnum(
+      CompressionCodec,
       colChunk.meta_data.codec);
 
     let pagesOffset = +colChunk.meta_data.data_page_offset;
@@ -270,7 +270,7 @@ export class ParquetEnvelopeReader {
     });
   }
 
-  async readFooter(): Promise<parquet_thrift.FileMetaData> {
+  async readFooter(): Promise<FileMetaData> {
     let trailerLen = PARQUET_MAGIC.length + 4;
     let trailerBuf = await this.read(this.fileSize - trailerLen, trailerLen);
 
@@ -287,7 +287,7 @@ export class ParquetEnvelopeReader {
     let metadataBuf = await this.read(metadataOffset, metadataSize);
     // let metadata = new parquet_thrift.FileMetaData();
     // parquet_util.decodeThrift(metadata, metadataBuf);
-    let { metadata } = parquet_util.decodeFileMetadata(metadataBuf);
+    let { metadata } = Util.decodeFileMetadata(metadataBuf);
     return metadata;
   }
 
@@ -322,11 +322,11 @@ function decodeDataPages(buffer: Buffer, opts: TODO): ColumnData {
     // const pageHeader = new parquet_thrift.PageHeader();
     // cursor.offset += parquet_util.decodeThrift(pageHeader, cursor.buffer);
 
-    const { pageHeader, length } = parquet_util.decodePageHeader(cursor.buffer);
+    const { pageHeader, length } = Util.decodePageHeader(cursor.buffer);
     cursor.offset += length;
 
-    const pageType = parquet_util.getThriftEnum(
-      parquet_thrift.PageType,
+    const pageType = Util.getThriftEnum(
+      PageType,
       pageHeader.type);
 
     let pageData = null;
@@ -353,14 +353,14 @@ function decodeDataPages(buffer: Buffer, opts: TODO): ColumnData {
 
 function decodeDataPage(cursor: CursorType, header: TODO, opts: TODO): ColumnData {
   let valueCount = header.data_page_header.num_values;
-  let valueEncoding = parquet_util.getThriftEnum(
-    parquet_thrift.Encoding,
+  let valueEncoding = Util.getThriftEnum(
+    Encoding,
     header.data_page_header.encoding
   ) as ParquetCodec;
 
   /* read repetition levels */
-  let rLevelEncoding = parquet_util.getThriftEnum(
-    parquet_thrift.Encoding,
+  let rLevelEncoding = Util.getThriftEnum(
+    Encoding,
     header.data_page_header.repetition_level_encoding
   ) as ParquetCodec;
 
@@ -371,14 +371,14 @@ function decodeDataPage(cursor: CursorType, header: TODO, opts: TODO): ColumnDat
       rLevelEncoding,
       cursor,
       valueCount,
-      { bitWidth: parquet_util.getBitWidth(opts.rLevelMax) });
+      { bitWidth: Util.getBitWidth(opts.rLevelMax) });
   } else {
     rLevels.fill(0);
   }
 
   /* read definition levels */
-  let dLevelEncoding = parquet_util.getThriftEnum(
-    parquet_thrift.Encoding,
+  let dLevelEncoding = Util.getThriftEnum(
+    Encoding,
     header.data_page_header.definition_level_encoding
   ) as ParquetCodec;
 
@@ -389,7 +389,7 @@ function decodeDataPage(cursor: CursorType, header: TODO, opts: TODO): ColumnDat
       dLevelEncoding,
       cursor,
       valueCount,
-      { bitWidth: parquet_util.getBitWidth(opts.dLevelMax) });
+      { bitWidth: Util.getBitWidth(opts.dLevelMax) });
   } else {
     dLevels.fill(0);
   }
@@ -425,8 +425,8 @@ function decodeDataPageV2(cursor: CursorType, header: TODO, opts: TODO): ColumnD
 
   const valueCount = header.data_page_header_v2.num_values;
   const valueCountNonNull = valueCount - header.data_page_header_v2.num_nulls;
-  const valueEncoding = parquet_util.getThriftEnum(
-    parquet_thrift.Encoding,
+  const valueEncoding = Util.getThriftEnum(
+    Encoding,
     header.data_page_header_v2.encoding
   ) as ParquetCodec;
 
@@ -439,7 +439,7 @@ function decodeDataPageV2(cursor: CursorType, header: TODO, opts: TODO): ColumnD
       cursor,
       valueCount,
       {
-        bitWidth: parquet_util.getBitWidth(opts.rLevelMax),
+        bitWidth: Util.getBitWidth(opts.rLevelMax),
         disableEnvelope: true
       });
   } else {
@@ -455,7 +455,7 @@ function decodeDataPageV2(cursor: CursorType, header: TODO, opts: TODO): ColumnD
       cursor,
       valueCount,
       {
-        bitWidth: parquet_util.getBitWidth(opts.dLevelMax),
+        bitWidth: Util.getBitWidth(opts.dLevelMax),
         disableEnvelope: true
       });
   } else {
@@ -466,7 +466,7 @@ function decodeDataPageV2(cursor: CursorType, header: TODO, opts: TODO): ColumnD
   let valuesBufCursor = cursor;
 
   if (header.data_page_header_v2.is_compressed) {
-    let valuesBuf = parquet_compression.inflate(
+    let valuesBuf = Compression.inflate(
       opts.compression,
       cursor.buffer.slice(cursor.offset, cursorEnd));
 
@@ -502,8 +502,8 @@ function decodeSchema(schemaElements: TODO[]): SchemaDefinition {
   for (let idx = 0; idx < schemaElements.length;) {
     const schemaElement = schemaElements[idx];
 
-    let repetitionType = parquet_util.getThriftEnum(
-      parquet_thrift.FieldRepetitionType,
+    let repetitionType = Util.getThriftEnum(
+      FieldRepetitionType,
       schemaElement.repetition_type);
 
     let optional = false;
@@ -528,13 +528,13 @@ function decodeSchema(schemaElements: TODO[]): SchemaDefinition {
           schemaElements.slice(idx + 1, idx + 1 + schemaElement.num_children))
       };
     } else {
-      let logicalType = parquet_util.getThriftEnum(
-        parquet_thrift.Type,
+      let logicalType = Util.getThriftEnum(
+        Type,
         schemaElement.type);
 
       if (schemaElement.converted_type != null) {
-        logicalType = parquet_util.getThriftEnum(
-          parquet_thrift.ConvertedType,
+        logicalType = Util.getThriftEnum(
+          ConvertedType,
           schemaElement.converted_type);
       }
 

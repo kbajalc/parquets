@@ -1,8 +1,7 @@
-'use strict';
-const parquet = require('..');
+import { ParquetReader } from '../lib';
 
 async function example() {
-  let reader = await parquet.ParquetReader.openFile('fruits.parquet');
+  let reader = await ParquetReader.openFile('fruits.parquet');
 
   let cursor = reader.getCursor();
   let record = null;

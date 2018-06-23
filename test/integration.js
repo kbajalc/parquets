@@ -335,15 +335,15 @@ describe('Parquet', function () {
       return writeTestFile(opts).then(readTestFile);
     });
 
-    // it('write a test file with LZO compression', function() {
-    //   const opts = { useDataPageV2: true, compression: 'LZO' };
-    //   return writeTestFile(opts);
-    // });
+    it('write a test file with LZO compression', function () {
+      const opts = { useDataPageV2: true, compression: 'LZO' };
+      return writeTestFile(opts);
+    });
 
-    // it('write a test file with LZO compression and then read it back', function() {
-    //   const opts = { useDataPageV2: true, compression: 'LZO' };
-    //   return writeTestFile(opts).then(readTestFile);
-    // });
+    it('write a test file with LZO compression and then read it back', function () {
+      const opts = { useDataPageV2: true, compression: 'LZO' };
+      return writeTestFile(opts).then(readTestFile);
+    });
 
     it('write a test file with BROTLI compression', function () {
       const opts = { useDataPageV2: true, compression: 'BROTLI' };
@@ -352,6 +352,16 @@ describe('Parquet', function () {
 
     it('write a test file with BROTLI compression and then read it back', function () {
       const opts = { useDataPageV2: true, compression: 'BROTLI' };
+      return writeTestFile(opts).then(readTestFile);
+    });
+
+    it('write a test file with LZ4 compression', function () {
+      const opts = { useDataPageV2: true, compression: 'LZ4' };
+      return writeTestFile(opts);
+    });
+
+    it('write a test file with LZ4 compression and then read it back', function () {
+      const opts = { useDataPageV2: true, compression: 'LZ4' };
       return writeTestFile(opts).then(readTestFile);
     });
 

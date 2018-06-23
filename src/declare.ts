@@ -39,15 +39,17 @@ export interface TypeDef {
 }
 
 export interface SchemaDefinition {
-  [string: string]: {
-    type?: ParquetType,
-    typeLength?: number,
-    encoding?: ParquetCodec,
-    compression?: ParquetCompression,
-    optional?: boolean,
-    repeated?: boolean,
-    fields?: SchemaDefinition
-  }
+  [string: string]: ElementDefinition;
+}
+
+export interface ElementDefinition {
+  type?: ParquetType,
+  typeLength?: number,
+  encoding?: ParquetCodec,
+  compression?: ParquetCompression,
+  optional?: boolean,
+  repeated?: boolean,
+  fields?: SchemaDefinition
 }
 
 export interface FieldDefinition {

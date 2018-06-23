@@ -8,7 +8,7 @@ fully asynchronous, pure node.js implementation of the Parquet file format
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://badge.fury.io/js/parquetjs.svg)](https://badge.fury.io/js/parquetjs)
 
-This package contains a fully asynchronous, pure JavaScript implementation of
+This package contains a fully asynchronous, pure TypeScript implementation of
 the [Parquet](https://parquet.apache.org/) file format. The implementation conforms with the
 [Parquet specification](https://github.com/apache/parquet-format) and is tested
 for compatibility with Apache's Java [reference implementation](https://github.com/apache/parquet-mr).
@@ -21,32 +21,32 @@ of it back out efficiently. The Parquet format is based on [Google's Dremel pape
 Installation
 ------------
 
-To use parquet.js with node.js, install it using npm:
+To use parquets with node.js, install it using npm:
 
 ```
-  $ npm install parquetjs
+  $ npm install parquets
 ```
 
-_parquet.js requires node.js >= 7.6.0_
+_parquets requires node.js >= 7.6.0_
 
 
 Usage: Writing files
 --------------------
 
-Once you have installed the parquet.js library, you can import it as a single
+Once you have installed the parquets library, you can import it as a single
 module:
 
-``` js
-var parquet = require('parquetjs');
+``` ts
+import { ParquetSchema, ParquetWriter, ParquetReader } from 'parquets';
 ```
 
 Parquet files have a strict schema, similar to tables in a SQL database. So,
 in order to produce a Parquet file we first need to declare a new schema. Here
 is a simple example that shows how to instantiate a `ParquetSchema` object:
 
-``` js
+```ts
 // declare a schema for the `fruits` table
-var schema = new parquet.ParquetSchema({
+let schema = new ParquetSchema({
   name: { type: 'UTF8' },
   quantity: { type: 'INT64' },
   price: { type: 'DOUBLE' },
@@ -63,9 +63,9 @@ Once we have a schema, we can create a `ParquetWriter` object. The writer will
 take input rows as JSON objects, convert them to the Parquet format and store
 them on disk. 
 
-``` js
+```ts
 // create new ParquetWriter that writes to 'fruits.parquet`
-var writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet');
+let writer = await ParquetWriter.openFile(schema, 'fruits.parquet');
 
 // append a few rows to the file
 await writer.appendRow({name: 'apples', quantity: 10, price: 2.5, date: new Date(), in_stock: true});
@@ -87,9 +87,9 @@ You may open more than one cursor and use them concurrently. All cursors become
 invalid once close() is called on
 the reader object.
 
-``` js
+```ts
 // create new ParquetReader that reads from 'fruits.parquet`
-let reader = await parquet.ParquetReader.openFile('fruits.parquet');
+let reader = await ParquetReader.openFile('fruits.parquet');
 
 // create a new cursor
 let cursor = reader.getCursor();
@@ -104,7 +104,7 @@ while (record = await cursor.next()) {
 When creating a cursor, you can optionally request that only a subset of the
 columns should be read from disk. For example:
 
-``` js
+```ts
 // create a new cursor that will only return the `name` and `price` columns
 let cursor = reader.getCursor(['name', 'price']);
 ```
@@ -112,7 +112,7 @@ let cursor = reader.getCursor(['name', 'price']);
 It is important that you call close() after you are finished reading the file to
 avoid leaking file descriptors.
 
-``` js
+```ts
 await reader.close();
 ```
 
@@ -128,8 +128,8 @@ The most simple encoding scheme is the PLAIN encoding. It simply stores the
 values as they are without any compression. The PLAIN encoding is currently
 the default for all types except `BOOLEAN`:
 
-``` js
-var schema = new parquet.ParquetSchema({
+```ts
+let schema = new ParquetSchema({
   name: { type: 'UTF8', encoding: 'PLAIN' },
 });
 ```
@@ -142,8 +142,8 @@ combination with the `BOOLEAN`, `INT32` and `INT64` types. The RLE encoding
 requires an additional `bitWidth` parameter that contains the maximum number of
 bits required to store the largest value of the field.
 
-``` js
-var schema = new parquet.ParquetSchema({
+```ts
+let schema = new ParquetSchema({
   age: { type: 'UINT_32', encoding: 'RLE', bitWidth: 7 },
 });
 ```
@@ -155,13 +155,13 @@ Optional Fields
 By default, all fields are required to be present in each row. You can also mark
 a field as 'optional' which will let you store rows with that field missing:
 
-``` js
-var schema = new parquet.ParquetSchema({
+```ts
+let schema = new ParquetSchema({
   name: { type: 'UTF8' },
   quantity: { type: 'INT64', optional: true },
 });
 
-var writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet');
+let writer = await ParquetWriter.openFile(schema, 'fruits.parquet');
 await writer.appendRow({name: 'apples', quantity: 10 });
 await writer.appendRow({name: 'banana' }); // not in stock
 ```
@@ -178,9 +178,9 @@ list instead:
 Consider this example, which allows us to store a more advanced "fruits" table
 where each row contains a name, a list of colours and a list of "stock" objects. 
 
-``` js
+```ts
 // advanced fruits table
-var schema = new parquet.ParquetSchema({
+let schema = new ParquetSchema({
   name: { type: 'UTF8' },
   colours: { type: 'UTF8', repeated: true },
   stock: {
@@ -193,7 +193,7 @@ var schema = new parquet.ParquetSchema({
 });
 
 // the above schema allows us to store the following rows:
-var writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet');
+let writer = await ParquetWriter.openFile(schema, 'fruits.parquet');
 
 await writer.appendRow({
   name: 'banana',
@@ -216,7 +216,7 @@ await writer.appendRow({
 await writer.close();
 
 // reading nested rows with a list of explicit columns
-let reader = await parquet.ParquetReader.openFile('fruits.parquet');
+let reader = await ParquetReader.openFile('fruits.parquet');
 
 let cursor = reader.getCursor([['name'], ['stock', 'price']]);
 let record = null;
@@ -283,8 +283,8 @@ The size of a row group is configurable by the user and controls the maximum
 number of rows that are buffered in memory at any given time as well as the number
 of rows that are co-located on disk:
 
-``` js
-var writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet');
+```ts
+let writer = await ParquetWriter.openFile(schema, 'fruits.parquet');
 writer.setRowGroupSize(8192);
 ```
 
