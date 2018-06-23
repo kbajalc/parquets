@@ -1,6 +1,7 @@
 import zlib = require('zlib');
 import snappy = require('snappyjs');
 import lzo = require('lzo');
+import lz4 = require('lz4');
 import brotli = require('brotli');
 import { ParquetCompression } from './declare';
 
@@ -24,6 +25,10 @@ export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, { deflate: 
   'BROTLI': {
     deflate: deflate_brotli,
     inflate: inflate_brotli
+  },
+  'LZ4': {
+    deflate: deflate_lz4,
+    inflate: inflate_lz4
   }
 };
 
@@ -62,6 +67,10 @@ function deflate_brotli(value: Buffer): Buffer {
   }));
 }
 
+function deflate_lz4(value: Buffer): Buffer {
+  return lz4.compress(value);
+}
+
 /**
  * Inflate a value using compression method `method`
  */
@@ -87,6 +96,10 @@ function inflate_snappy(value: Buffer): Buffer {
 
 function inflate_lzo(value: Buffer): Buffer {
   return lzo.decompress(value);
+}
+
+function inflate_lz4(value: Buffer): Buffer {
+  return lz4.decompress(value);
 }
 
 function inflate_brotli(value: Buffer): Buffer {

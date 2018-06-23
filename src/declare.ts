@@ -1,7 +1,7 @@
 export type TODO = any;
 
 export type ParquetCodec = 'PLAIN' | 'RLE';
-export type ParquetCompression = 'UNCOMPRESSED' | 'GZIP' | 'SNAPPY' | 'LZO' | 'BROTLI';
+export type ParquetCompression = 'UNCOMPRESSED' | 'GZIP' | 'SNAPPY' | 'LZO' | 'BROTLI' | 'LZ4';
 export type RepetitionType = 'REQUIRED' | 'OPTIONAL' | 'REPEATED';
 export type ParquetType =
   'BOOLEAN'
