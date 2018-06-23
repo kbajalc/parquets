@@ -36,7 +36,8 @@
     "build": "rm -rf ./lib ; tsc -p .",
     "watch": "rm -rf ./lib ; tsc -p . --watch",
     "test": "mocha",
-    "gen": "npx thrift-typescript --target apache --rootDir . --sourceDir . --outDir codegen parquet.thrift"
+    "gen": "npx thrift-typescript --target apache --rootDir . --sourceDir . --outDir codegen parquet.thrift",
+    "thrift": "thrift --gen js:node parquet.thrift && thrift --gen js:ts parquet.thrift"
   },
   "engines": {
     "node": ">=7.6"

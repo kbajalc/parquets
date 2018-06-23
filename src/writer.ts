@@ -6,7 +6,7 @@ import parquet_shredder = require('./shred')
 import parquet_util = require('./util')
 import parquet_codec = require('./codec')
 import parquet_compression = require('./compression')
-const parquet_thrift = require('./gen/parquet_types')
+import parquet_thrift = require('./gen/parquet_types')
 
 /**
  * Parquet File Magic String
@@ -407,7 +407,7 @@ function encodeDataPageV2(column, valueCount, rowCount, values, rlevels, dlevels
       num_values: valueCount,
       num_nulls: valueCount - values.length,
       num_rows: rowCount,
-      encoding: parquet_thrift.Encoding[column.encoding],
+      encoding: parquet_thrift.Encoding[column.encoding] as any,
       definition_levels_byte_length: dLevelsBuf.length,
       repetition_levels_byte_length: rLevelsBuf.length,
       is_compressed: column.compression !== 'UNCOMPRESSED'

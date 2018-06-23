@@ -1,6 +1,7 @@
 import fs = require('fs');
 import { TBufferedTransport, TCompactProtocol, TFramedTransport } from 'thrift';
 import { TODO, WriteStreamOptions } from './declare';
+import { FileMetaData, PageHeader } from './gen/parquet_types';
 
 /**
  * Helper function that serializes a thrift object into a buffer
@@ -31,29 +32,29 @@ export function decodeThrift(obj: any, buf: Buffer, offset?: number) {
   return transport.readPos - offset;
 }
 
-// export function decodeFileMetadata(buf: Buffer, offset?: number) {
-//   if (!offset) {
-//     offset = 0;
-//   }
+export function decodeFileMetadata(buf: Buffer, offset?: number) {
+  if (!offset) {
+    offset = 0;
+  }
 
-//   let transport = new TFramedTransport(buf);
-//   transport.readPos = offset;
-//   let protocol = new TCompactProtocol(transport);
-//   let metadata = FileMetaData.read(protocol);
-//   return { pos: transport.readPos - offset, metadata };
-// }
+  let transport = new TFramedTransport(buf);
+  transport.readPos = offset;
+  let protocol = new TCompactProtocol(transport);
+  let metadata = FileMetaData.read(protocol);
+  return { length: transport.readPos - offset, metadata };
+}
 
-// export function decodeHeader(buf: Buffer, offset?: number) {
-//   if (!offset) {
-//     offset = 0;
-//   }
+export function decodePageHeader(buf: Buffer, offset?: number) {
+  if (!offset) {
+    offset = 0;
+  }
 
-//   let transport = new TFramedTransport(buf);
-//   transport.readPos = offset;
-//   let protocol = new TCompactProtocol(transport);
-//   let pageHeader = PageHeader.read(protocol);
-//   return { length: transport.readPos - offset, pageHeader }
-// }
+  let transport = new TFramedTransport(buf);
+  transport.readPos = offset;
+  let protocol = new TCompactProtocol(transport);
+  let pageHeader = PageHeader.read(protocol);
+  return { length: transport.readPos - offset, pageHeader }
+}
 
 /**
  * Get the number of bits required to store a given value

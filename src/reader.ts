@@ -244,7 +244,7 @@ export class ParquetEnvelopeReader {
   }
 
   async readColumnChunk(schema: ParquetSchema, colChunk: TODO): Promise<ColumnData> {
-    if (colChunk.file_path !== null) {
+    if (colChunk.file_path !== undefined && colChunk.file_path !== null) {
       throw 'external references are not supported';
     }
 
@@ -285,9 +285,9 @@ export class ParquetEnvelopeReader {
     }
 
     let metadataBuf = await this.read(metadataOffset, metadataSize);
-    let metadata = new parquet_thrift.FileMetaData();
-    parquet_util.decodeThrift(metadata, metadataBuf);
-    // let { metadata } = parquet_util.decodeFileMetadata(metadataBuf);
+    // let metadata = new parquet_thrift.FileMetaData();
+    // parquet_util.decodeThrift(metadata, metadataBuf);
+    let { metadata } = parquet_util.decodeFileMetadata(metadataBuf);
     return metadata;
   }
 
@@ -319,11 +319,11 @@ function decodeDataPages(buffer: Buffer, opts: TODO): ColumnData {
   };
 
   while (cursor.offset < cursor.size) {
-    const pageHeader = new parquet_thrift.PageHeader();
-    cursor.offset += parquet_util.decodeThrift(pageHeader, cursor.buffer);
+    // const pageHeader = new parquet_thrift.PageHeader();
+    // cursor.offset += parquet_util.decodeThrift(pageHeader, cursor.buffer);
 
-    // const { pageHeader, length } = parquet_util.decodeHeader(cursor.buffer);
-    // cursor.offset += length;
+    const { pageHeader, length } = parquet_util.decodePageHeader(cursor.buffer);
+    cursor.offset += length;
 
     const pageType = parquet_util.getThriftEnum(
       parquet_thrift.PageType,
