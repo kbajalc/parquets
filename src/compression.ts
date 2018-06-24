@@ -7,7 +7,7 @@ import { ParquetCompression } from './declare';
 
 export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, {
   deflate: (value: Buffer) => Buffer,
-  inflate: (value: Buffer) => Buffer
+  inflate: (value: Buffer, size: number) => Buffer
 }> = {
   UNCOMPRESSED: {
     deflate: deflate_identity,
@@ -72,12 +72,12 @@ function deflate_brotli(value: Buffer): Buffer {
 
 function deflate_lz4(value: Buffer): Buffer {
   try {
-    // let result = Buffer.alloc(lz4.encodeBound(value.length));
-    // const compressedSize = lz4.encodeBlock(value, result);
-    // // remove unnecessary bytes
-    // result = result.slice(0, compressedSize);
-    // return result;
-    return lz4.encode(value);
+    let result = Buffer.alloc(lz4.encodeBound(value.length));
+    const compressedSize = lz4.encodeBlock(value, result);
+    // remove unnecessary bytes
+    result = result.slice(0, compressedSize);
+    return result;
+    // return lz4.encode(value);
   } catch (err) {
     throw err;
   }
@@ -86,12 +86,12 @@ function deflate_lz4(value: Buffer): Buffer {
 /**
  * Inflate a value using compression method `method`
  */
-export function inflate(method: ParquetCompression, value: Buffer): Buffer {
+export function inflate(method: ParquetCompression, value: Buffer, size: number): Buffer {
   if (!(method in PARQUET_COMPRESSION_METHODS)) {
     throw 'invalid compression method: ' + method;
   }
 
-  return PARQUET_COMPRESSION_METHODS[method].inflate(value);
+  return PARQUET_COMPRESSION_METHODS[method].inflate(value, size);
 }
 
 function inflate_identity(value: Buffer): Buffer {
@@ -106,18 +106,18 @@ function inflate_snappy(value: Buffer): Buffer {
   return snappy.uncompress(value);
 }
 
-function inflate_lzo(value: Buffer): Buffer {
-  return lzo.decompress(value, value.length * 300);
+function inflate_lzo(value: Buffer, size: number): Buffer {
+  return lzo.decompress(value, size);
 }
 
-function inflate_lz4(value: Buffer): Buffer {
+function inflate_lz4(value: Buffer, size: number): Buffer {
   try {
-    // let result = Buffer.alloc(value.length * 300);
-    // const uncompressedSize = lz4.decodeBlock(value, result);
-    // // remove unnecessary bytes
-    // result = result.slice(0, uncompressedSize);
-    // return result;
-    return lz4.decode(value);
+    let result = Buffer.alloc(size);
+    const uncompressedSize = lz4.decodeBlock(value, result);
+    // remove unnecessary bytes
+    result = result.slice(0, uncompressedSize);
+    return result;
+    // return lz4.decode(value);
   } catch (err) {
     throw err;
   }

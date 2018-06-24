@@ -1,7 +1,8 @@
 import { PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
 import { ColumnData, CursorType, ParquetCodec, ParquetType, RecordBuffer, SchemaDefinition, TODO } from './declare';
-import { CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageType, Type } from './gen/parquet_types';
+// tslint:disable-next-line:max-line-length
+import { CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageHeader, PageType, Type } from './gen/parquet_types';
 import { ParquetSchema } from './schema';
 import * as Shred from './shred';
 import * as Util from './util';
@@ -107,7 +108,7 @@ export class ParquetReader {
     }
   }
 
-  public metadata: Record<string, TODO>;
+  public metadata: FileMetaData;
   public envelopeReader: ParquetEnvelopeReader;
   public schema: ParquetSchema;
 
@@ -117,7 +118,7 @@ export class ParquetReader {
    * and internal use cases. Consider using one of the open{File,Buffer} methods
    * instead
    */
-  constructor(metadata: Record<string, TODO>, envelopeReader: ParquetEnvelopeReader) {
+  constructor(metadata: FileMetaData, envelopeReader: ParquetEnvelopeReader) {
     if (metadata.version !== PARQUET_VERSION) {
       throw 'invalid parquet version';
     }
@@ -352,7 +353,7 @@ function decodeDataPages(buffer: Buffer, opts: TODO): ColumnData {
   return data;
 }
 
-function decodeDataPage(cursor: CursorType, header: TODO, opts: TODO): ColumnData {
+function decodeDataPage(cursor: CursorType, header: PageHeader, opts: TODO): ColumnData {
   const valueCount = header.data_page_header.num_values;
   const valueEncoding = Util.getThriftEnum(
     Encoding,
@@ -423,7 +424,7 @@ function decodeDataPage(cursor: CursorType, header: TODO, opts: TODO): ColumnDat
   };
 }
 
-function decodeDataPageV2(cursor: CursorType, header: TODO, opts: TODO): ColumnData {
+function decodeDataPageV2(cursor: CursorType, header: PageHeader, opts: TODO): ColumnData {
   const cursorEnd = cursor.offset + header.compressed_page_size;
 
   const valueCount = header.data_page_header_v2.num_values;
@@ -473,7 +474,8 @@ function decodeDataPageV2(cursor: CursorType, header: TODO, opts: TODO): ColumnD
   if (header.data_page_header_v2.is_compressed) {
     const valuesBuf = Compression.inflate(
       opts.compression,
-      cursor.buffer.slice(cursor.offset, cursorEnd)
+      cursor.buffer.slice(cursor.offset, cursorEnd),
+      header.uncompressed_page_size
     );
 
     valuesBufCursor = {
