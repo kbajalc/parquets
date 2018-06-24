@@ -1,8 +1,8 @@
-import { ParquetSchema, ParquetWriter } from '../lib';
+import { ParquetSchema, ParquetWriter } from '../src';
 
 // write a new file 'fruits.parquet'
 async function example() {
-  let schema = new ParquetSchema({
+  const schema = new ParquetSchema({
     name: { type: 'UTF8' },
     quantity: { type: 'INT64', optional: true },
     price: { type: 'DOUBLE' },
@@ -12,7 +12,7 @@ async function example() {
     meta_json: { type: 'BSON', optional: true },
   });
 
-  let writer = await ParquetWriter.openFile(schema, 'fruits.parquet');
+  const writer = await ParquetWriter.openFile(schema, 'fruits.parquet');
 
   await writer.appendRow({
     name: 'apples',
@@ -45,4 +45,3 @@ async function example() {
 }
 
 example();
-

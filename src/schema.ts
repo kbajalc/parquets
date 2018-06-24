@@ -27,8 +27,10 @@ export class ParquetSchema {
   findField(path: string[]): FieldDefinition;
   findField(path: any): FieldDefinition {
     if (path.constructor !== Array) {
-      path = path.split(",");
+      // tslint:disable-next-line:no-parameter-reassignment
+      path = path.split(',');
     } else {
+      // tslint:disable-next-line:no-parameter-reassignment
       path = path.slice(0); // clone array
     }
 
@@ -47,10 +49,11 @@ export class ParquetSchema {
   findFieldBranch(path: string[]): FieldDefinition[];
   findFieldBranch(path: any): any[] {
     if (path.constructor !== Array) {
-      path = path.split(",");
+      // tslint:disable-next-line:no-parameter-reassignment
+      path = path.split(',');
     }
 
-    let branch = [];
+    const branch = [];
     let n = this.fields;
     for (; path.length > 0; path.shift()) {
       branch.push(n[path[0]]);
@@ -63,23 +66,31 @@ export class ParquetSchema {
     return branch;
   }
 
-};
+}
 
-function buildFields(schema: SchemaDefinition, rLevelParentMax?: number, dLevelParentMax?: number, path?: string[]): Record<string, FieldDefinition> {
+function buildFields(
+  schema: SchemaDefinition,
+  rLevelParentMax?: number,
+  dLevelParentMax?: number,
+  path?: string[]
+): Record<string, FieldDefinition> {
   if (!rLevelParentMax) {
+    // tslint:disable-next-line:no-parameter-reassignment
     rLevelParentMax = 0;
   }
 
   if (!dLevelParentMax) {
+    // tslint:disable-next-line:no-parameter-reassignment
     dLevelParentMax = 0;
   }
 
   if (!path) {
+    // tslint:disable-next-line:no-parameter-reassignment
     path = [];
   }
 
-  let fieldList: Record<string, FieldDefinition> = {};
-  for (let name in schema) {
+  const fieldList: Record<string, FieldDefinition> = {};
+  for (const name in schema) {
     const opts = schema[name];
 
     /* field repetition type */
@@ -105,11 +116,11 @@ function buildFields(schema: SchemaDefinition, rLevelParentMax?: number, dLevelP
     /* nested field */
     if (opts.fields) {
       fieldList[name] = {
-        name: name,
+        name,
         path: path.concat([name]),
-        repetitionType: repetitionType,
-        rLevelMax: rLevelMax,
-        dLevelMax: dLevelMax,
+        repetitionType,
+        rLevelMax,
+        dLevelMax,
         isNested: true,
         fieldCount: Object.keys(opts.fields).length,
         fields: buildFields(
@@ -147,16 +158,16 @@ function buildFields(schema: SchemaDefinition, rLevelParentMax?: number, dLevelP
 
     /* add to schema */
     fieldList[name] = {
-      name: name,
+      name,
       primitiveType: typeDef.primitiveType,
       originalType: typeDef.originalType,
       path: path.concat([name]),
-      repetitionType: repetitionType,
+      repetitionType,
       encoding: opts.encoding,
       compression: opts.compression,
       typeLength: opts.typeLength || typeDef.typeLength,
-      rLevelMax: rLevelMax,
-      dLevelMax: dLevelMax
+      rLevelMax,
+      dLevelMax
     };
   }
 
@@ -166,7 +177,7 @@ function buildFields(schema: SchemaDefinition, rLevelParentMax?: number, dLevelP
 function listFields(fields: Record<string, FieldDefinition>): FieldDefinition[] {
   let list: FieldDefinition[] = [];
 
-  for (let k in fields) {
+  for (const k in fields) {
     list.push(fields[k]);
 
     if (fields[k].isNested) {

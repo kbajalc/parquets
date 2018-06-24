@@ -1,8 +1,9 @@
 import { WriteStream } from 'fs';
 import { Stream, Transform } from 'stream';
-import * as Codec from './codec';
+import { PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
 import { TODO, WriteStreamOptions } from './declare';
+// tslint:disable-next-line:max-line-length
 import { ColumnChunk, ColumnMetaData, CompressionCodec, ConvertedType, DataPageHeader, DataPageHeaderV2, Encoding, FieldRepetitionType, FileMetaData, KeyValue, PageHeader, PageType, RowGroup, SchemaElement, Type } from './gen/parquet_types';
 import { ParquetSchema } from './schema';
 import * as Shred from './shred';
@@ -42,7 +43,7 @@ export class ParquetWriter {
    * the specified file
    */
   static async openFile(schema: ParquetSchema, path: string, opts?: WriteStreamOptions): Promise<ParquetWriter> {
-    let outputStream = await Util.osopen(path, opts);
+    const outputStream = await Util.osopen(path, opts);
     return ParquetWriter.openStream(schema, outputStream, opts);
   }
 
@@ -52,10 +53,11 @@ export class ParquetWriter {
    */
   static async openStream(schema: ParquetSchema, outputStream: WriteStream, opts?: WriteStreamOptions): Promise<ParquetWriter> {
     if (!opts) {
+      // tslint:disable-next-line:no-parameter-reassignment
       opts = {};
     }
 
-    let envelopeWriter = await ParquetEnvelopeWriter.openStream(
+    const envelopeWriter = await ParquetEnvelopeWriter.openStream(
       schema,
       outputStream,
       opts
@@ -153,7 +155,7 @@ export class ParquetWriter {
   }
 
   /**
-   * Set the parquet data page size. The data page size controls the maximum 
+   * Set the parquet data page size. The data page size controls the maximum
    * number of column values that are written to disk as a consecutive array
    */
   setPageSize(cnt: number): void {
@@ -174,8 +176,8 @@ export class ParquetEnvelopeWriter {
    * Create a new parquet envelope writer that writes to the specified stream
    */
   static async openStream(schema: ParquetSchema, outputStream: Stream, opts): Promise<ParquetEnvelopeWriter> {
-    let writeFn = Util.oswrite.bind(undefined, outputStream);
-    let closeFn = Util.osclose.bind(undefined, outputStream);
+    const writeFn = Util.oswrite.bind(undefined, outputStream);
+    const closeFn = Util.osclose.bind(undefined, outputStream);
     return new ParquetEnvelopeWriter(schema, writeFn, closeFn, 0, opts);
   }
 
@@ -196,7 +198,7 @@ export class ParquetEnvelopeWriter {
     this.rowCount = 0;
     this.rowGroups = [];
     this.pageSize = PARQUET_DEFAULT_PAGE_SIZE;
-    this.useDataPageV2 = ("useDataPageV2" in opts) ? opts.useDataPageV2 : true;
+    this.useDataPageV2 = ('useDataPageV2' in opts) ? opts.useDataPageV2 : true;
   }
 
   writeSection(buf): void {
@@ -216,7 +218,7 @@ export class ParquetEnvelopeWriter {
    * shredRecord method
    */
   writeRowGroup(records): void {
-    let rgroup = encodeRowGroup(
+    const rgroup = encodeRowGroup(
       this.schema,
       records,
       {
@@ -236,6 +238,7 @@ export class ParquetEnvelopeWriter {
    */
   writeFooter(userMetadata) {
     if (!userMetadata) {
+      // tslint:disable-next-line:no-parameter-reassignment
       userMetadata = {};
     }
 
@@ -249,10 +252,10 @@ export class ParquetEnvelopeWriter {
 
     return this.writeSection(
       encodeFooter(this.schema, this.rowCount, this.rowGroups, userMetadata));
-  };
+  }
 
   /**
-   * Set the parquet data page size. The data page size controls the maximum 
+   * Set the parquet data page size. The data page size controls the maximum
    * number of column values that are written to disk as a consecutive array
    */
   setPageSize(cnt) {
@@ -271,18 +274,19 @@ export class ParquetTransformer extends Transform {
   constructor(schema, opts = {}) {
     super({ objectMode: true });
 
-    let writeProxy = (function (t) {
+    const writeProxy = (function (t) {
       return function (b) {
         t.push(b);
-      }
+      };
     })(this);
 
     this.writer = new ParquetWriter(
       schema,
-      new ParquetEnvelopeWriter(schema, writeProxy, function () { }, 0, opts),
+      new ParquetEnvelopeWriter(schema, writeProxy, () => ({}), 0, opts),
       opts);
   }
 
+  // tslint:disable-next-line:function-name
   _transform(row, encoding, callback) {
     if (row) {
       this.writer.appendRow(row).then(callback);
@@ -291,6 +295,7 @@ export class ParquetTransformer extends Transform {
     }
   }
 
+  // tslint:disable-next-line:function-name
   _flush(callback) {
     this.writer.close(callback);
   }
@@ -301,11 +306,11 @@ export class ParquetTransformer extends Transform {
  * Encode a consecutive array of data using one of the parquet encodings
  */
 function encodeValues(type, encoding, values, opts) {
-  if (!(encoding in Codec)) {
+  if (!(encoding in PARQUET_CODEC)) {
     throw 'invalid encoding: ' + encoding;
   }
 
-  return Codec[encoding].encodeValues(type, values, opts);
+  return PARQUET_CODEC[encoding].encodeValues(type, values, opts);
 }
 
 /**
@@ -313,7 +318,7 @@ function encodeValues(type, encoding, values, opts) {
  */
 function encodeDataPage(column, valueCount, values, rlevels, dlevels) {
   /* encode values */
-  let valuesBuf = encodeValues(
+  const valuesBuf = encodeValues(
     column.primitiveType,
     column.encoding,
     values, {
@@ -341,8 +346,8 @@ function encodeDataPage(column, valueCount, values, rlevels, dlevels) {
   }
 
   /* build page header */
-  let pageBody = Buffer.concat([rLevelsBuf, dLevelsBuf, valuesBuf]);
-  let pageHeader = new PageHeader({
+  const pageBody = Buffer.concat([rLevelsBuf, dLevelsBuf, valuesBuf]);
+  const pageHeader = new PageHeader({
     type: PageType.DATA_PAGE,
     uncompressed_page_size: pageBody.length,
     compressed_page_size: pageBody.length,
@@ -365,7 +370,7 @@ function encodeDataPage(column, valueCount, values, rlevels, dlevels) {
  */
 function encodeDataPageV2(column, valueCount, rowCount, values, rlevels, dlevels) {
   /* encode values */
-  let valuesBuf = encodeValues(
+  const valuesBuf = encodeValues(
     column.primitiveType,
     column.encoding,
     values, {
@@ -373,7 +378,7 @@ function encodeDataPageV2(column, valueCount, rowCount, values, rlevels, dlevels
       bitWidth: column.typeLength
     });
 
-  let valuesBufCompressed = Compression.deflate(
+  const valuesBufCompressed = Compression.deflate(
     column.compression,
     valuesBuf);
 
@@ -401,7 +406,7 @@ function encodeDataPageV2(column, valueCount, rowCount, values, rlevels, dlevels
   }
 
   /* build page header */
-  let pageHeader = new PageHeader({
+  const pageHeader = new PageHeader({
     type: PageType.DATA_PAGE_V2,
     data_page_header_v2: new DataPageHeaderV2({
       num_values: valueCount,
@@ -429,7 +434,7 @@ function encodeDataPageV2(column, valueCount, rowCount, values, rlevels, dlevels
  */
 function encodeColumnChunk(values, opts) {
   /* encode data page(s) */
-  let pages = [];
+  const pages = [];
 
   {
     let dataPage;
@@ -453,10 +458,10 @@ function encodeColumnChunk(values, opts) {
     pages.push(dataPage);
   }
 
-  let pagesBuf = Buffer.concat(pages);
+  const pagesBuf = Buffer.concat(pages);
 
   /* prepare metadata header */
-  let metadata = new ColumnMetaData({
+  const metadata = new ColumnMetaData({
     path_in_schema: opts.column.path,
     num_values: values.count,
     data_page_offset: opts.baseOffset,
@@ -468,16 +473,16 @@ function encodeColumnChunk(values, opts) {
   });
 
   /* list encodings */
-  let encodingsSet = {};
+  const encodingsSet = {};
   encodingsSet[PARQUET_RDLVL_ENCODING] = true;
   encodingsSet[opts.column.encoding] = true;
-  for (let k in encodingsSet) {
+  for (const k in encodingsSet) {
     metadata.encodings.push(Encoding[k]);
   }
 
   /* concat metadata header and data pages */
-  let metadataOffset = opts.baseOffset + pagesBuf.length;
-  let body = Buffer.concat([pagesBuf, Util.serializeThrift(metadata)]);
+  const metadataOffset = opts.baseOffset + pagesBuf.length;
+  const body = Buffer.concat([pagesBuf, Util.serializeThrift(metadata)]);
   return { body, metadata, metadataOffset };
 }
 
@@ -485,19 +490,19 @@ function encodeColumnChunk(values, opts) {
  * Encode a list of column values into a parquet row group
  */
 function encodeRowGroup(schema: ParquetSchema, data, opts): { body: Buffer, metadata: TODO } {
-  let metadata = new RowGroup({
+  const metadata = new RowGroup({
     num_rows: data.rowCount,
     columns: [],
     total_byte_size: 0
   });
 
   let body = Buffer.alloc(0);
-  for (let field of schema.fieldList) {
+  for (const field of schema.fieldList) {
     if (field.isNested) {
       continue;
     }
 
-    let cchunkData = encodeColumnChunk(
+    const cchunkData = encodeColumnChunk(
       data.columnData[field.path as any],
       {
         column: field,
@@ -509,7 +514,7 @@ function encodeRowGroup(schema: ParquetSchema, data, opts): { body: Buffer, meta
       }
     );
 
-    let cchunk = new ColumnChunk({
+    const cchunk = new ColumnChunk({
       file_offset: cchunkData.metadataOffset,
       meta_data: cchunkData.metadata
     });
@@ -527,7 +532,7 @@ function encodeRowGroup(schema: ParquetSchema, data, opts): { body: Buffer, meta
  * Encode a parquet file metadata footer
  */
 function encodeFooter(schema, rowCount, rowGroups, userMetadata) {
-  let metadata = new FileMetaData({
+  const metadata = new FileMetaData({
     version: PARQUET_VERSION,
     created_by: 'parquets',
     num_rows: rowCount,
@@ -536,25 +541,25 @@ function encodeFooter(schema, rowCount, rowGroups, userMetadata) {
     key_value_metadata: []
   });
 
-  for (let key in userMetadata) {
-    let kv = new KeyValue({
-      key: key,
+  for (const key in userMetadata) {
+    const kv = new KeyValue({
+      key,
       value: userMetadata[key]
     });
     metadata.key_value_metadata.push(kv);
   }
 
   {
-    let schemaRoot = new SchemaElement({
+    const schemaRoot = new SchemaElement({
       name: 'root',
       num_children: Object.keys(schema.fields).length
     });
     metadata.schema.push(schemaRoot);
   }
 
-  for (let field of schema.fieldList) {
-    let relt = FieldRepetitionType[field.repetitionType];
-    let schemaElem = new SchemaElement({
+  for (const field of schema.fieldList) {
+    const relt = FieldRepetitionType[field.repetitionType];
+    const schemaElem = new SchemaElement({
       name: field.name,
       repetition_type: relt as any
     });
@@ -574,8 +579,8 @@ function encodeFooter(schema, rowCount, rowGroups, userMetadata) {
     metadata.schema.push(schemaElem);
   }
 
-  let metadataEncoded = Util.serializeThrift(metadata);
-  let footerEncoded = new Buffer(metadataEncoded.length + 8);
+  const metadataEncoded = Util.serializeThrift(metadata);
+  const footerEncoded = Buffer.alloc(metadataEncoded.length + 8);
   metadataEncoded.copy(footerEncoded);
   footerEncoded.writeUInt32LE(metadataEncoded.length, metadataEncoded.length);
   footerEncoded.write(PARQUET_MAGIC, metadataEncoded.length + 4);

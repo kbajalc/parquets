@@ -43,13 +43,13 @@ export interface SchemaDefinition {
 }
 
 export interface ElementDefinition {
-  type?: ParquetType,
-  typeLength?: number,
-  encoding?: ParquetCodec,
-  compression?: ParquetCompression,
-  optional?: boolean,
-  repeated?: boolean,
-  fields?: SchemaDefinition
+  type?: ParquetType;
+  typeLength?: number;
+  encoding?: ParquetCodec;
+  compression?: ParquetCompression;
+  optional?: boolean;
+  repeated?: boolean;
+  fields?: SchemaDefinition;
 }
 
 export interface FieldDefinition {
@@ -68,9 +68,9 @@ export interface FieldDefinition {
   fields?: Record<string, FieldDefinition>;
 }
 
-export interface BufferType {
-  rowCount?: number,
-  columnData?: Record<string, ColumnData>
+export interface RecordBuffer {
+  rowCount?: number;
+  columnData?: Record<string, ColumnData>;
 }
 
 export interface ColumnData {
@@ -82,8 +82,8 @@ export interface ColumnData {
 
 export interface CursorType {
   buffer: Buffer;
-  offset: number,
-  size: number
+  offset: number;
+  size: number;
 }
 
 export interface WriteStreamOptions {

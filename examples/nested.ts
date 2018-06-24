@@ -1,10 +1,10 @@
-import { ParquetReader, ParquetSchema, ParquetWriter } from '../lib';
+import { ParquetReader, ParquetSchema, ParquetWriter } from '../src';
 
 process.on('unhandledRejection', r => console.error(r));
 
 // write a new file 'fruits.parquet'
 async function example() {
-  let schema = new ParquetSchema({
+  const schema = new ParquetSchema({
     name: { type: 'UTF8' },
     price: { type: 'DOUBLE' },
     colour: { type: 'UTF8', repeated: true },
@@ -17,15 +17,15 @@ async function example() {
     },
   });
 
-  let writer = await ParquetWriter.openFile(schema, 'fruits.parquet');
+  const writer = await ParquetWriter.openFile(schema, 'fruits.parquet');
 
   await writer.appendRow({
     name: 'apples',
     price: 2.6,
     colour: ['green', 'red'],
     stock: [
-      { quantity: 10, warehouse: "A" },
-      { quantity: 20, warehouse: "B" }
+      { quantity: 10, warehouse: 'A' },
+      { quantity: 20, warehouse: 'B' }
     ]
   });
 
@@ -35,7 +35,7 @@ async function example() {
     colour: ['orange'],
     stock: {
       quantity: [50, 75],
-      warehouse: "X"
+      warehouse: 'X'
     }
   });
 
@@ -47,10 +47,10 @@ async function example() {
 
   await writer.close();
 
-  let reader = await ParquetReader.openFile('fruits.parquet');
+  const reader = await ParquetReader.openFile('fruits.parquet');
 
   {
-    let cursor = reader.getCursor();
+    const cursor = reader.getCursor();
     let record = null;
     while (record = await cursor.next()) {
       console.log(record);
@@ -58,7 +58,7 @@ async function example() {
   }
 
   {
-    let cursor = reader.getCursor([['name'], ['stock', 'warehouse']]);
+    const cursor = reader.getCursor([['name'], ['stock', 'warehouse']]);
     let record = null;
     while (record = await cursor.next()) {
       console.log(record);
@@ -70,4 +70,3 @@ async function example() {
 }
 
 example();
-

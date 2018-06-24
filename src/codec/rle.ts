@@ -1,4 +1,4 @@
-import varint = require('varint')
+import varint = require('varint');
 import { ParquetType, TODO } from '../declare';
 
 function encodeRunBitpacked(values: number[], opts: TODO): Buffer {
@@ -6,7 +6,7 @@ function encodeRunBitpacked(values: number[], opts: TODO): Buffer {
     throw 'must be a multiple of 8';
   }
 
-  let buf = Buffer.alloc(Math.ceil(opts.bitWidth * (values.length / 8)));
+  const buf = Buffer.alloc(Math.ceil(opts.bitWidth * (values.length / 8)));
   for (let b = 0; b < opts.bitWidth * values.length; ++b) {
     if ((values[Math.floor(b / opts.bitWidth)] & (1 << b % opts.bitWidth)) > 0) {
       buf[Math.floor(b / 8)] |= (1 << (b % 8));
@@ -20,7 +20,7 @@ function encodeRunBitpacked(values: number[], opts: TODO): Buffer {
 }
 
 function encodeRunRepeated(value: number, count: number, opts: TODO) {
-  let buf = Buffer.alloc(Math.ceil(opts.bitWidth / 8));
+  const buf = Buffer.alloc(Math.ceil(opts.bitWidth / 8));
 
   for (let i = 0; i < buf.length; ++i) {
     buf.writeUInt8(value & 0xff, i);
@@ -43,7 +43,8 @@ export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buff
     case 'BOOLEAN':
     case 'INT32':
     case 'INT64':
-      values = values.map((x) => parseInt(x, 10));
+      // tslint:disable-next-line:no-parameter-reassignment
+      values = values.map(x => parseInt(x, 10));
       break;
 
     default:
@@ -51,7 +52,7 @@ export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buff
   }
 
   let buf = Buffer.alloc(0);
-  let runs = [];
+  const runs = [];
   for (let cur = 0; cur < values.length; cur += 8) {
     let repeating = true;
     for (let i = 1; i < 8; ++i) {
@@ -90,7 +91,7 @@ export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buff
     return buf;
   }
 
-  let envelope = Buffer.alloc(buf.length + 4);
+  const envelope = Buffer.alloc(buf.length + 4);
   envelope.writeUInt32LE(buf.length, undefined);
   buf.copy(envelope, 4);
 
@@ -102,7 +103,8 @@ function decodeRunBitpacked(cursor: TODO, count: number, opts: TODO): number[] {
     throw 'must be a multiple of 8';
   }
 
-  let values = new Array(count).fill(0);
+  // tslint:disable-next-line:prefer-array-literal
+  const values = new Array(count).fill(0);
   for (let b = 0; b < opts.bitWidth * count; ++b) {
     if (cursor.buffer[cursor.offset + Math.floor(b / 8)] & (1 << (b % 8))) {
       values[Math.floor(b / opts.bitWidth)] |= (1 << b % opts.bitWidth);
@@ -121,6 +123,7 @@ function decodeRunRepeated(cursor: TODO, count: number, opts: TODO): number[] {
     cursor.offset += 1;
   }
 
+  // tslint:disable-next-line:prefer-array-literal
   return new Array(count).fill(value);
 }
 
@@ -133,7 +136,7 @@ export function decodeValues(type: ParquetType, cursor: TODO, count: number, opt
     cursor.offset += 4;
   }
 
-  let values = [];
+  const values = [];
   while (values.length < count) {
     const header = varint.decode(cursor.buffer, cursor.offset);
     cursor.offset += varint.encodingLength(header);
@@ -147,9 +150,8 @@ export function decodeValues(type: ParquetType, cursor: TODO, count: number, opt
   }
 
   if (values.length !== count) {
-    throw "invalid RLE encoding";
+    throw 'invalid RLE encoding';
   }
 
   return values;
 }
-

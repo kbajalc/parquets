@@ -5,28 +5,31 @@ import lz4 = require('lz4');
 import brotli = require('brotli');
 import { ParquetCompression } from './declare';
 
-export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, { deflate: (value: Buffer) => Buffer, inflate: (Buffer) => Buffer }> = {
-  'UNCOMPRESSED': {
+export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, {
+  deflate: (value: Buffer) => Buffer,
+  inflate: (value: Buffer) => Buffer
+}> = {
+  UNCOMPRESSED: {
     deflate: deflate_identity,
     inflate: inflate_identity
   },
-  'GZIP': {
+  GZIP: {
     deflate: deflate_gzip,
     inflate: inflate_gzip
   },
-  'SNAPPY': {
+  SNAPPY: {
     deflate: deflate_snappy,
     inflate: inflate_snappy
   },
-  'LZO': {
+  LZO: {
     deflate: deflate_lzo,
     inflate: inflate_lzo
   },
-  'BROTLI': {
+  BROTLI: {
     deflate: deflate_brotli,
     inflate: inflate_brotli
   },
-  'LZ4': {
+  LZ4: {
     deflate: deflate_lz4,
     inflate: inflate_lz4
   }
@@ -60,7 +63,7 @@ function deflate_lzo(value: Buffer): Buffer {
 }
 
 function deflate_brotli(value: Buffer): Buffer {
-  return new Buffer(brotli.compress(value, {
+  return Buffer.from(brotli.compress(value, {
     mode: 0,
     quality: 8,
     lgwin: 22
@@ -68,7 +71,16 @@ function deflate_brotli(value: Buffer): Buffer {
 }
 
 function deflate_lz4(value: Buffer): Buffer {
-  return lz4.encode(value);
+  try {
+    // let result = Buffer.alloc(lz4.encodeBound(value.length));
+    // const compressedSize = lz4.encodeBlock(value, result);
+    // // remove unnecessary bytes
+    // result = result.slice(0, compressedSize);
+    // return result;
+    return lz4.encode(value);
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
@@ -95,13 +107,22 @@ function inflate_snappy(value: Buffer): Buffer {
 }
 
 function inflate_lzo(value: Buffer): Buffer {
-  return lzo.decompress(value);
+  return lzo.decompress(value, value.length * 300);
 }
 
 function inflate_lz4(value: Buffer): Buffer {
-  return lz4.decode(value);
+  try {
+    // let result = Buffer.alloc(value.length * 300);
+    // const uncompressedSize = lz4.decodeBlock(value, result);
+    // // remove unnecessary bytes
+    // result = result.slice(0, uncompressedSize);
+    // return result;
+    return lz4.decode(value);
+  } catch (err) {
+    throw err;
+  }
 }
 
 function inflate_brotli(value: Buffer): Buffer {
-  return new Buffer(brotli.decompress(value));
+  return Buffer.from(brotli.decompress(value));
 }

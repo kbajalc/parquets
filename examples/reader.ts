@@ -1,9 +1,9 @@
-import { ParquetReader } from '../lib';
+import { ParquetReader } from '../src';
 
 async function example() {
-  let reader = await ParquetReader.openFile('fruits.parquet');
+  const reader = await ParquetReader.openFile('fruits.parquet');
 
-  let cursor = reader.getCursor();
+  const cursor = reader.getCursor();
   let record = null;
   while (record = await cursor.next()) {
     console.log(record);
@@ -13,4 +13,3 @@ async function example() {
 }
 
 example();
-

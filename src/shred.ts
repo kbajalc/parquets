@@ -1,4 +1,4 @@
-import { BufferType, ColumnData, FieldDefinition } from './declare';
+import { ColumnData, FieldDefinition, RecordBuffer } from './declare';
 import { ParquetSchema } from './schema';
 import * as Types from './types';
 
@@ -25,10 +25,10 @@ import * as Types from './types';
  *   }
  *
  */
-export function shredRecord(schema: ParquetSchema, record: Record<string, any>, buffer: BufferType) {
+export function shredRecord(schema: ParquetSchema, record: Record<string, any>, buffer: RecordBuffer) {
   /* shred the record, this may raise an exception */
-  let recordShredded = {};
-  for (let field of schema.fieldList) {
+  const recordShredded = {};
+  for (const field of schema.fieldList) {
     recordShredded[field.path as any] = {
       dlevels: [],
       rlevels: [],
@@ -44,8 +44,8 @@ export function shredRecord(schema: ParquetSchema, record: Record<string, any>, 
     buffer.rowCount = 0;
     buffer.columnData = {};
 
-    for (let field of schema.fieldList) {
-      let cd: ColumnData = {
+    for (const field of schema.fieldList) {
+      const cd: ColumnData = {
         dlevels: [],
         rlevels: [],
         values: [],
@@ -56,7 +56,7 @@ export function shredRecord(schema: ParquetSchema, record: Record<string, any>, 
   }
 
   buffer.rowCount += 1;
-  for (let field of schema.fieldList) {
+  for (const field of schema.fieldList) {
     Array.prototype.push.apply(
       buffer.columnData[field.path as any].rlevels,
       recordShredded[field.path as any].rlevels);
@@ -74,7 +74,7 @@ export function shredRecord(schema: ParquetSchema, record: Record<string, any>, 
 }
 
 function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Record<string, any>, data: any, rlvl: number, dlvl: number) {
-  for (let fieldName in fields) {
+  for (const fieldName in fields) {
     const field = fields[fieldName];
     const fieldType = field.originalType || field.primitiveType;
 
@@ -89,7 +89,7 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Re
     }
 
     // check values
-    if (values.length == 0 && !!record && field.repetitionType === 'REQUIRED') {
+    if (values.length === 0 && !!record && field.repetitionType === 'REQUIRED') {
       throw 'missing required field: ' + field.name;
     }
 
@@ -98,7 +98,7 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Re
     }
 
     // push null
-    if (values.length == 0) {
+    if (values.length === 0) {
       if (field.isNested) {
         shredRecordInternal(
           field.fields,
@@ -116,6 +116,7 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Re
 
     // push values
     for (let i = 0; i < values.length; ++i) {
+      // tslint:disable-next-line:variable-name
       const rlvl_i = i === 0 ? rlvl : field.rLevelMax;
 
       if (field.isNested) {
@@ -156,17 +157,18 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Re
  *
  */
 export function materializeRecords(schema: ParquetSchema, buffer: Record<string, any>) {
-  let records = [];
+  const records = [];
   for (let i = 0; i < buffer.rowCount; ++i) {
     records.push({});
   }
 
-  for (let k in buffer.columnData) {
+  for (const k in buffer.columnData) {
     const field = schema.findField(k);
     const fieldBranch = schema.findFieldBranch(k);
-    let values = buffer.columnData[k].values[Symbol.iterator]();
+    const values = buffer.columnData[k].values[Symbol.iterator]();
 
-    let rLevels = new Array(field.rLevelMax + 1);
+    // tslint:disable-next-line:prefer-array-literal
+    const rLevels = new Array(field.rLevelMax + 1);
     rLevels.fill(0);
 
     for (let i = 0; i < buffer.columnData[k].count; ++i) {
@@ -203,7 +205,7 @@ function materializeRecordField(record, branch, rLevels, dLevel, value) {
   }
 
   if (branch.length > 1) {
-    if (node.repetitionType === "REPEATED") {
+    if (node.repetitionType === 'REPEATED') {
       if (!(node.name in record)) {
         record[node.name] = [];
       }
@@ -229,7 +231,7 @@ function materializeRecordField(record, branch, rLevels, dLevel, value) {
         value);
     }
   } else {
-    if (node.repetitionType === "REPEATED") {
+    if (node.repetitionType === 'REPEATED') {
       if (!(node.name in record)) {
         record[node.name] = [];
       }

@@ -1,127 +1,127 @@
 import { BSON } from 'bson';
-import { ParquetType, TypeDef } from "./declare";
+import { ParquetType, TypeDef } from './declare';
 
 export const PARQUET_LOGICAL_TYPES: Record<string, TypeDef> = {
-  'BOOLEAN': {
+  BOOLEAN: {
     primitiveType: 'BOOLEAN',
     toPrimitive: toPrimitive_BOOLEAN,
     fromPrimitive: fromPrimitive_BOOLEAN
   },
-  'INT32': {
+  INT32: {
     primitiveType: 'INT32',
     toPrimitive: toPrimitive_INT32
   },
-  'INT64': {
+  INT64: {
     primitiveType: 'INT64',
     toPrimitive: toPrimitive_INT64
   },
-  'INT96': {
+  INT96: {
     primitiveType: 'INT96',
     toPrimitive: toPrimitive_INT96
   },
-  'FLOAT': {
+  FLOAT: {
     primitiveType: 'FLOAT',
     toPrimitive: toPrimitive_FLOAT
   },
-  'DOUBLE': {
+  DOUBLE: {
     primitiveType: 'DOUBLE',
     toPrimitive: toPrimitive_DOUBLE
   },
-  'BYTE_ARRAY': {
+  BYTE_ARRAY: {
     primitiveType: 'BYTE_ARRAY',
     toPrimitive: toPrimitive_BYTE_ARRAY
   },
-  'FIXED_LEN_BYTE_ARRAY': {
+  FIXED_LEN_BYTE_ARRAY: {
     primitiveType: 'FIXED_LEN_BYTE_ARRAY',
     toPrimitive: toPrimitive_BYTE_ARRAY
   },
-  'UTF8': {
+  UTF8: {
     primitiveType: 'BYTE_ARRAY',
     originalType: 'UTF8',
     toPrimitive: toPrimitive_UTF8,
     fromPrimitive: fromPrimitive_UTF8
   },
-  'TIME_MILLIS': {
+  TIME_MILLIS: {
     primitiveType: 'INT32',
     originalType: 'TIME_MILLIS',
     toPrimitive: toPrimitive_TIME_MILLIS
   },
-  'TIME_MICROS': {
+  TIME_MICROS: {
     primitiveType: 'INT64',
     originalType: 'TIME_MICROS',
     toPrimitive: toPrimitive_TIME_MICROS
   },
-  'DATE': {
+  DATE: {
     primitiveType: 'INT32',
     originalType: 'DATE',
     toPrimitive: toPrimitive_DATE,
     fromPrimitive: fromPrimitive_DATE
   },
-  'TIMESTAMP_MILLIS': {
+  TIMESTAMP_MILLIS: {
     primitiveType: 'INT64',
     originalType: 'TIMESTAMP_MILLIS',
     toPrimitive: toPrimitive_TIMESTAMP_MILLIS,
     fromPrimitive: fromPrimitive_TIMESTAMP_MILLIS
   },
-  'TIMESTAMP_MICROS': {
+  TIMESTAMP_MICROS: {
     primitiveType: 'INT64',
     originalType: 'TIMESTAMP_MICROS',
     toPrimitive: toPrimitive_TIMESTAMP_MICROS,
     fromPrimitive: fromPrimitive_TIMESTAMP_MICROS
   },
-  'UINT_8': {
+  UINT_8: {
     primitiveType: 'INT32',
     originalType: 'UINT_8',
     toPrimitive: toPrimitive_UINT8
   },
-  'UINT_16': {
+  UINT_16: {
     primitiveType: 'INT32',
     originalType: 'UINT_16',
     toPrimitive: toPrimitive_UINT16
   },
-  'UINT_32': {
+  UINT_32: {
     primitiveType: 'INT32',
     originalType: 'UINT_32',
     toPrimitive: toPrimitive_UINT32
   },
-  'UINT_64': {
+  UINT_64: {
     primitiveType: 'INT64',
     originalType: 'UINT_64',
     toPrimitive: toPrimitive_UINT64
   },
-  'INT_8': {
+  INT_8: {
     primitiveType: 'INT32',
     originalType: 'INT_8',
     toPrimitive: toPrimitive_INT8
   },
-  'INT_16': {
+  INT_16: {
     primitiveType: 'INT32',
     originalType: 'INT_16',
     toPrimitive: toPrimitive_INT16
   },
-  'INT_32': {
+  INT_32: {
     primitiveType: 'INT32',
     originalType: 'INT_32',
     toPrimitive: toPrimitive_INT32
   },
-  'INT_64': {
+  INT_64: {
     primitiveType: 'INT64',
     originalType: 'INT_64',
     toPrimitive: toPrimitive_INT64
   },
-  'JSON': {
+  JSON: {
     primitiveType: 'BYTE_ARRAY',
     originalType: 'JSON',
     toPrimitive: toPrimitive_JSON,
     fromPrimitive: fromPrimitive_JSON
   },
-  'BSON': {
+  BSON: {
     primitiveType: 'BYTE_ARRAY',
     originalType: 'BSON',
     toPrimitive: toPrimitive_BSON,
     fromPrimitive: fromPrimitive_BSON
   },
-  'INTERVAL': {
+  INTERVAL: {
     primitiveType: 'FIXED_LEN_BYTE_ARRAY',
     originalType: 'INTERVAL',
     typeLength: 12,
@@ -151,8 +151,9 @@ export function fromPrimitive(type: ParquetType, value: any) {
     throw 'invalid type: ' + type;
   }
 
-  if ("fromPrimitive" in PARQUET_LOGICAL_TYPES[type]) {
+  if ('fromPrimitive' in PARQUET_LOGICAL_TYPES[type]) {
     return PARQUET_LOGICAL_TYPES[type].fromPrimitive(value);
+    // tslint:disable-next-line:no-else-after-return
   } else {
     return value;
   }
@@ -286,12 +287,12 @@ function fromPrimitive_JSON(value: any) {
 }
 
 function toPrimitive_BSON(value: any) {
-  var encoder = new BSON();
+  const encoder = new BSON();
   return Buffer.from(encoder.serialize(value));
 }
 
 function fromPrimitive_BSON(value: any) {
-  var decoder = new BSON();
+  const decoder = new BSON();
   return decoder.deserialize(value);
 }
 
@@ -335,7 +336,6 @@ function toPrimitive_DATE(value: any) {
 function fromPrimitive_DATE(value: any) {
   return new Date(value * kMillisPerDay);
 }
-
 
 function toPrimitive_TIMESTAMP_MILLIS(value: any) {
   /* convert from date */
@@ -381,10 +381,11 @@ function fromPrimitive_TIMESTAMP_MICROS(value: any) {
 
 function toPrimitive_INTERVAL(value: any) {
   if (!value.months || !value.days || !value.milliseconds) {
-    throw "value for INTERVAL must be object { months: ..., days: ..., milliseconds: ... }";
+    throw 'value for INTERVAL must be object { months: ..., days: ..., milliseconds: ... }';
   }
 
-  let buf = new Buffer(12);
+  const buf = Buffer.alloc(12);
+
   buf.writeUInt32LE(value.months, 0);
   buf.writeUInt32LE(value.days, 4);
   buf.writeUInt32LE(value.milliseconds, 8);
@@ -397,5 +398,5 @@ function fromPrimitive_INTERVAL(value: any) {
   const days = buf.readUInt32LE(4);
   const millis = buf.readUInt32LE(8);
 
-  return { months: months, days: days, milliseconds: millis };
+  return { months, days, milliseconds: millis };
 }

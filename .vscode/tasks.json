@@ -20,6 +20,22 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "PQT Build",
+            "identifier": "build",
+            "type": "npm",
+            "script": "build",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$tsc"
+            ]
         }
     ]
 }

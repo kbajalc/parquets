@@ -17,6 +17,25 @@
                 "${workspaceRoot}/lib/**/*.js"
             ]
         },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "PQT Jest",
+            "program": "${workspaceRoot}/jest",
+            "args": [
+                "-i",
+                // "${file}"
+                "${workspaceRoot}/build/${relativeFile}"
+            ],
+            "internalConsoleOptions": "openOnSessionStart",
+            "outputCapture": "std",
+            // "console": "integratedTerminal",
+            "preLaunchTask": "build",
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceRoot}/build/**/*.js"
+            ]
+        },
         /*
         {
             "type": "node",

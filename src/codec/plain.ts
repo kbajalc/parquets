@@ -1,8 +1,8 @@
-import { FieldDefinition, ParquetType, TODO } from "../declare";
-import INT53 = require('int53')
+import { FieldDefinition, ParquetType, TODO } from '../declare';
+import INT53 = require('int53');
 
 function encodeValues_BOOLEAN(values: boolean[]): Buffer {
-  let buf = new Buffer(Math.ceil(values.length / 8));
+  const buf = Buffer.alloc(Math.ceil(values.length / 8));
   buf.fill(0);
 
   for (let i = 0; i < values.length; ++i) {
@@ -15,10 +15,10 @@ function encodeValues_BOOLEAN(values: boolean[]): Buffer {
 }
 
 function decodeValues_BOOLEAN(cursor: TODO, count: number): boolean[] {
-  let values: boolean[] = [];
+  const values: boolean[] = [];
 
   for (let i = 0; i < count; ++i) {
-    let b = cursor.buffer[cursor.offset + Math.floor(i / 8)];
+    const b = cursor.buffer[cursor.offset + Math.floor(i / 8)];
     values.push((b & (1 << (i % 8))) > 0);
   }
 
@@ -27,16 +27,16 @@ function decodeValues_BOOLEAN(cursor: TODO, count: number): boolean[] {
 }
 
 function encodeValues_INT32(values: number[]): Buffer {
-  let buf = new Buffer(4 * values.length);
+  const buf = Buffer.alloc(4 * values.length);
   for (let i = 0; i < values.length; i++) {
-    buf.writeInt32LE(values[i], i * 4)
+    buf.writeInt32LE(values[i], i * 4);
   }
 
   return buf;
 }
 
 function decodeValues_INT32(cursor: TODO, count: number): number[] {
-  let values: number[] = [];
+  const values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     values.push(cursor.buffer.readInt32LE(cursor.offset));
@@ -47,7 +47,7 @@ function decodeValues_INT32(cursor: TODO, count: number): number[] {
 }
 
 function encodeValues_INT64(values: number[]): Buffer {
-  let buf = new Buffer(8 * values.length);
+  const buf = Buffer.alloc(8 * values.length);
   for (let i = 0; i < values.length; i++) {
     INT53.writeInt64LE(values[i], buf, i * 8);
   }
@@ -56,7 +56,7 @@ function encodeValues_INT64(values: number[]): Buffer {
 }
 
 function decodeValues_INT64(cursor: TODO, count: number): number[] {
-  let values: number[] = [];
+  const values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     values.push(INT53.readInt64LE(cursor.buffer, cursor.offset));
@@ -67,7 +67,7 @@ function decodeValues_INT64(cursor: TODO, count: number): number[] {
 }
 
 function encodeValues_INT96(values: number[]): Buffer {
-  let buf = new Buffer(12 * values.length);
+  const buf = Buffer.alloc(12 * values.length);
 
   for (let i = 0; i < values.length; i++) {
     if (values[i] >= 0) {
@@ -83,7 +83,7 @@ function encodeValues_INT96(values: number[]): Buffer {
 }
 
 function decodeValues_INT96(cursor: TODO, count: number): number[] {
-  let values: number[] = [];
+  const values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     const low = INT53.readInt64LE(cursor.buffer, cursor.offset);
@@ -102,16 +102,16 @@ function decodeValues_INT96(cursor: TODO, count: number): number[] {
 }
 
 function encodeValues_FLOAT(values: number[]): Buffer {
-  let buf = new Buffer(4 * values.length);
+  const buf = Buffer.alloc(4 * values.length);
   for (let i = 0; i < values.length; i++) {
-    buf.writeFloatLE(values[i], i * 4)
+    buf.writeFloatLE(values[i], i * 4);
   }
 
   return buf;
 }
 
 function decodeValues_FLOAT(cursor: TODO, count: number): number[] {
-  let values: number[] = [];
+  const values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     values.push(cursor.buffer.readFloatLE(cursor.offset));
@@ -122,16 +122,16 @@ function decodeValues_FLOAT(cursor: TODO, count: number): number[] {
 }
 
 function encodeValues_DOUBLE(values: number[]): Buffer {
-  let buf = new Buffer(8 * values.length);
+  const buf = Buffer.alloc(8 * values.length);
   for (let i = 0; i < values.length; i++) {
-    buf.writeDoubleLE(values[i], i * 8)
+    buf.writeDoubleLE(values[i], i * 8);
   }
 
   return buf;
 }
 
 function decodeValues_DOUBLE(cursor, count): number[] {
-  let values: number[] = [];
+  const values: number[] = [];
 
   for (let i = 0; i < count; ++i) {
     values.push(cursor.buffer.readDoubleLE(cursor.offset));
@@ -142,16 +142,18 @@ function decodeValues_DOUBLE(cursor, count): number[] {
 }
 
 function encodeValues_BYTE_ARRAY(values): Buffer {
+  // tslint:disable-next-line:variable-name
   let buf_len = 0;
   for (let i = 0; i < values.length; i++) {
     values[i] = Buffer.from(values[i]);
     buf_len += 4 + values[i].length;
   }
 
-  let buf = Buffer.alloc(buf_len);
+  const buf = Buffer.alloc(buf_len);
+  // tslint:disable-next-line:variable-name
   let buf_pos = 0;
   for (let i = 0; i < values.length; i++) {
-    buf.writeUInt32LE(values[i].length, buf_pos)
+    buf.writeUInt32LE(values[i].length, buf_pos);
     values[i].copy(buf, buf_pos + 4);
     buf_pos += 4 + values[i].length;
 
@@ -161,10 +163,10 @@ function encodeValues_BYTE_ARRAY(values): Buffer {
 }
 
 function decodeValues_BYTE_ARRAY(cursor: TODO, count: number): TODO[] {
-  let values = [];
+  const values = [];
 
   for (let i = 0; i < count; ++i) {
-    let len = cursor.buffer.readUInt32LE(cursor.offset);
+    const len = cursor.buffer.readUInt32LE(cursor.offset);
     cursor.offset += 4;
     values.push(cursor.buffer.slice(cursor.offset, cursor.offset + len));
     cursor.offset += len;
@@ -173,18 +175,16 @@ function decodeValues_BYTE_ARRAY(cursor: TODO, count: number): TODO[] {
   return values;
 }
 
-
-
 function encodeValues_FIXED_LEN_BYTE_ARRAY(values: TODO, opts: FieldDefinition): Buffer {
   if (!opts.typeLength) {
-    throw "missing option: typeLength (required for FIXED_LEN_BYTE_ARRAY)";
+    throw 'missing option: typeLength (required for FIXED_LEN_BYTE_ARRAY)';
   }
 
   for (let i = 0; i < values.length; i++) {
     values[i] = Buffer.from(values[i]);
 
     if (values[i].length !== opts.typeLength) {
-      throw "invalid value for FIXED_LEN_BYTE_ARRAY: " + values[i];
+      throw 'invalid value for FIXED_LEN_BYTE_ARRAY: ' + values[i];
     }
   }
 
@@ -192,10 +192,10 @@ function encodeValues_FIXED_LEN_BYTE_ARRAY(values: TODO, opts: FieldDefinition):
 }
 
 function decodeValues_FIXED_LEN_BYTE_ARRAY(cursor: TODO, count: number, opts: FieldDefinition): TODO[] {
-  let values = [];
+  const values = [];
 
   if (!opts.typeLength) {
-    throw "missing option: typeLength (required for FIXED_LEN_BYTE_ARRAY)";
+    throw 'missing option: typeLength (required for FIXED_LEN_BYTE_ARRAY)';
   }
 
   for (let i = 0; i < count; ++i) {
@@ -206,7 +206,7 @@ function decodeValues_FIXED_LEN_BYTE_ARRAY(cursor: TODO, count: number, opts: Fi
   return values;
 }
 
-export function encodeValues(type: ParquetType, values, opts): Buffer {
+export function encodeValues(type: ParquetType, values: any, opts?: TODO): Buffer {
   switch (type) {
     case 'BOOLEAN':
       return encodeValues_BOOLEAN(values);
@@ -251,4 +251,3 @@ export function decodeValues(type: ParquetType, cursor: TODO, count: number, opt
       throw 'unsupported type: ' + type;
   }
 }
-

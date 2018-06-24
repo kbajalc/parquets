@@ -1,18 +1,17 @@
-'use strict';
-const chai = require('chai');
-const fs = require('fs');
-const os = require('os');
+import chai = require('chai');
 const assert = chai.assert;
-const parquet = require('../lib');
-const objectStream = require('object-stream');
+import fs = require('fs');
+import parquet = require('../src');
+import objectStream = require('object-stream');
 
 const TEST_NUM_ROWS = 10000;
-const TEST_VTIME = new Date();
+const TEST_VTIME = Date.now();
 
 function mkTestSchema(opts) {
   return new parquet.ParquetSchema({
     name: { type: 'UTF8', compression: opts.compression },
-    //quantity:   { type: 'INT64', encoding: 'RLE', typeLength: 6, optional: true, compression: opts.compression }, // parquet-mr actually doesnt support this
+    // quantity:   { type: 'INT64', encoding: 'RLE', typeLength: 6, optional: true, compression: opts.compression },
+    // parquet-mr actually doesnt support this
     quantity: { type: 'INT64', optional: true, compression: opts.compression },
     price: { type: 'DOUBLE', compression: opts.compression },
     date: { type: 'TIMESTAMP_MICROS', compression: opts.compression },
@@ -29,10 +28,10 @@ function mkTestSchema(opts) {
     colour: { type: 'UTF8', repeated: true, compression: opts.compression },
     meta_json: { type: 'BSON', optional: true, compression: opts.compression },
   });
-};
+}
 
-function mkTestRows(opts) {
-  let rows = [];
+function mkTestRows(opts?: any) {
+  const rows = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; ++i) {
     rows.push({
@@ -41,11 +40,11 @@ function mkTestRows(opts) {
       price: 2.6,
       day: new Date('2017-11-26'),
       date: new Date(TEST_VTIME + 1000 * i),
-      finger: "FNORD",
+      finger: 'FNORD',
       inter: { months: 42, days: 23, milliseconds: 777 },
       stock: [
-        { quantity: 10, warehouse: "A" },
-        { quantity: 20, warehouse: "B" }
+        { quantity: 10, warehouse: 'A' },
+        { quantity: 20, warehouse: 'B' }
       ],
       colour: ['green', 'red']
     });
@@ -56,11 +55,11 @@ function mkTestRows(opts) {
       price: 2.7,
       day: new Date('2017-11-26'),
       date: new Date(TEST_VTIME + 2000 * i),
-      finger: "FNORD",
+      finger: 'FNORD',
       inter: { months: 42, days: 23, milliseconds: 777 },
       stock: {
         quantity: [50, 33],
-        warehouse: "X"
+        warehouse: 'X'
       },
       colour: ['orange']
     });
@@ -71,14 +70,14 @@ function mkTestRows(opts) {
       quantity: undefined,
       day: new Date('2017-11-26'),
       date: new Date(TEST_VTIME + 8000 * i),
-      finger: "FNORD",
+      finger: 'FNORD',
       inter: { months: 42, days: 23, milliseconds: 777 },
       stock: [
-        { quantity: 42, warehouse: "f" },
-        { quantity: 20, warehouse: "x" }
+        { quantity: 42, warehouse: 'f' },
+        { quantity: 20, warehouse: 'x' }
       ],
       colour: ['green', 'brown'],
-      meta_json: { expected_ship_date: TEST_VTIME }
+      meta_json: { expected_ship_date: new Date(TEST_VTIME) }
     });
 
     rows.push({
@@ -86,7 +85,7 @@ function mkTestRows(opts) {
       price: 3.2,
       day: new Date('2017-11-26'),
       date: new Date(TEST_VTIME + 6000 * i),
-      finger: "FNORD",
+      finger: 'FNORD',
       inter: { months: 42, days: 23, milliseconds: 777 },
       colour: ['yellow'],
       meta_json: { shape: 'curved' }
@@ -97,15 +96,15 @@ function mkTestRows(opts) {
 }
 
 async function writeTestFile(opts) {
-  let schema = mkTestSchema(opts);
+  const schema = mkTestSchema(opts);
 
-  let writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
-  writer.setMetadata("myuid", "420");
-  writer.setMetadata("fnord", "dronf");
+  const writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
+  writer.setMetadata('myuid', '420');
+  writer.setMetadata('fnord', 'dronf');
 
-  let rows = mkTestRows(opts);
+  const rows = mkTestRows(opts);
 
-  for (let row of rows) {
+  for (const row of rows) {
     await writer.appendRow(row);
   }
 
@@ -113,11 +112,11 @@ async function writeTestFile(opts) {
 }
 
 async function readTestFile() {
-  let reader = await parquet.ParquetReader.openFile('fruits.parquet');
+  const reader = await parquet.ParquetReader.openFile('fruits.parquet');
   assert.equal(reader.getRowCount(), TEST_NUM_ROWS * 4);
-  assert.deepEqual(reader.getMetadata(), { "myuid": "420", "fnord": "dronf" })
+  assert.deepEqual(reader.getMetadata(), { myuid: '420', fnord: 'dronf' });
 
-  let schema = reader.getSchema();
+  const schema = reader.getSchema();
   assert.equal(schema.fieldList.length, 12);
   assert(schema.fields.name);
   assert(schema.fields.stock);
@@ -201,7 +200,7 @@ async function readTestFile() {
   }
 
   {
-    let cursor = reader.getCursor();
+    const cursor = reader.getCursor();
     for (let i = 0; i < TEST_NUM_ROWS; ++i) {
       assert.deepEqual(await cursor.next(), {
         name: 'apples',
@@ -209,11 +208,11 @@ async function readTestFile() {
         price: 2.6,
         day: new Date('2017-11-26'),
         date: new Date(TEST_VTIME + 1000 * i),
-        finger: Buffer.from("FNORD"),
+        finger: Buffer.from('FNORD'),
         inter: { months: 42, days: 23, milliseconds: 777 },
         stock: [
-          { quantity: [10], warehouse: "A" },
-          { quantity: [20], warehouse: "B" }
+          { quantity: [10], warehouse: 'A' },
+          { quantity: [20], warehouse: 'B' }
         ],
         colour: ['green', 'red']
       });
@@ -224,10 +223,10 @@ async function readTestFile() {
         price: 2.7,
         day: new Date('2017-11-26'),
         date: new Date(TEST_VTIME + 2000 * i),
-        finger: Buffer.from("FNORD"),
+        finger: Buffer.from('FNORD'),
         inter: { months: 42, days: 23, milliseconds: 777 },
         stock: [
-          { quantity: [50, 33], warehouse: "X" }
+          { quantity: [50, 33], warehouse: 'X' }
         ],
         colour: ['orange']
       });
@@ -237,14 +236,14 @@ async function readTestFile() {
         price: 4.2,
         day: new Date('2017-11-26'),
         date: new Date(TEST_VTIME + 8000 * i),
-        finger: Buffer.from("FNORD"),
+        finger: Buffer.from('FNORD'),
         inter: { months: 42, days: 23, milliseconds: 777 },
         stock: [
-          { quantity: [42], warehouse: "f" },
-          { quantity: [20], warehouse: "x" }
+          { quantity: [42], warehouse: 'f' },
+          { quantity: [20], warehouse: 'x' }
         ],
         colour: ['green', 'brown'],
-        meta_json: { expected_ship_date: TEST_VTIME }
+        meta_json: { expected_ship_date: new Date(TEST_VTIME) }
       });
 
       assert.deepEqual(await cursor.next(), {
@@ -252,7 +251,7 @@ async function readTestFile() {
         price: 3.2,
         day: new Date('2017-11-26'),
         date: new Date(TEST_VTIME + 6000 * i),
-        finger: Buffer.from("FNORD"),
+        finger: Buffer.from('FNORD'),
         inter: { months: 42, days: 23, milliseconds: 777 },
         colour: ['yellow'],
         meta_json: { shape: 'curved' }
@@ -263,7 +262,7 @@ async function readTestFile() {
   }
 
   {
-    let cursor = reader.getCursor(['name']);
+    const cursor = reader.getCursor(['name']);
     for (let i = 0; i < TEST_NUM_ROWS; ++i) {
       assert.deepEqual(await cursor.next(), { name: 'apples' });
       assert.deepEqual(await cursor.next(), { name: 'oranges' });
@@ -275,7 +274,7 @@ async function readTestFile() {
   }
 
   {
-    let cursor = reader.getCursor(['name', 'quantity']);
+    const cursor = reader.getCursor(['name', 'quantity']);
     for (let i = 0; i < TEST_NUM_ROWS; ++i) {
       assert.deepEqual(await cursor.next(), { name: 'apples', quantity: 10 });
       assert.deepEqual(await cursor.next(), { name: 'oranges', quantity: 20 });
@@ -289,8 +288,9 @@ async function readTestFile() {
   reader.close();
 }
 
+// tslint:disable:ter-prefer-arrow-callback
 describe('Parquet', function () {
-  this.timeout(60000);
+  jest.setTimeout(60000);
 
   describe('with DataPageHeaderV1', function () {
     it('write a test file', function () {
@@ -371,17 +371,16 @@ describe('Parquet', function () {
 
     it('write a test file', async function () {
       const opts = { useDataPageV2: true, compression: 'GZIP' };
-      let schema = mkTestSchema(opts);
-      let transform = new parquet.ParquetTransformer(schema, opts);
-      transform.writer.setMetadata("myuid", "420");
-      transform.writer.setMetadata("fnord", "dronf");
+      const schema = mkTestSchema(opts);
+      const transform = new parquet.ParquetTransformer(schema, opts);
+      transform.writer.setMetadata('myuid', '420');
+      transform.writer.setMetadata('fnord', 'dronf');
 
-      var ostream = fs.createWriteStream('fruits_stream.parquet');
-      let istream = objectStream.fromArray(mkTestRows());
+      const ostream = fs.createWriteStream('fruits_stream.parquet');
+      const istream = objectStream.fromArray(mkTestRows());
       istream.pipe(transform).pipe(ostream);
     });
 
   });
 
 });
-

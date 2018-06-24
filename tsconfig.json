@@ -22,7 +22,7 @@
         "sourceMap": true,
         // "outFile": "./",                       /* Concatenate and emit output to single file. */
         // "outDir": "./",                        /* Redirect output structure to the directory. */
-        "outDir": "lib",
+        "outDir": "build",
         // "rootDir": "./",                       /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
         // "removeComments": true,                /* Do not emit comments to output. */
         // "noEmit": true,                        /* Do not emit outputs. */
@@ -78,12 +78,9 @@
         // Avoid to include dom lib
         "skipLibCheck": true
     },
-    "include": [
-        "src/**/*"
-    ],
     "exclude": [
         "node_modules",
         "build",
-        "gulp.ts"
+        "lib"
     ]
 }

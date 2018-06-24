@@ -2117,7 +2117,7 @@ export class ColumnMetaData {
   public dictionary_page_offset?: thrift.Int64;
   public statistics?: Statistics;
   public encoding_stats?: Array<PageEncodingStats>;
-  constructor(args: IColumnMetaDataArgs) {
+  constructor(args?: IColumnMetaDataArgs) {
     if (!args) return;
     if (args != null && args.type != null) {
       this.type = args.type;
