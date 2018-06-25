@@ -1,3 +1,5 @@
+import { RowGroup } from './gen/parquet_types';
+
 export type TODO = any;
 
 export type ParquetCodec = 'PLAIN' | 'RLE';
@@ -86,11 +88,11 @@ export interface CursorType {
   size: number;
 }
 
-export interface WriteStreamOptions {
-  flags?: string;
-  encoding?: string;
-  fd?: number;
-  mode?: number;
-  autoClose?: boolean;
-  start?: number;
+export interface ParquetRow {
+  [key: string]: any;
+}
+
+export interface ParquetRowGroup {
+  body: Buffer;
+  metadata: RowGroup;
 }

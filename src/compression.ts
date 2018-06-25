@@ -1,9 +1,10 @@
 import zlib = require('zlib');
-import snappy = require('snappyjs');
-import lzo = require('lzo');
-import lz4 = require('lz4');
-import brotli = require('brotli');
 import { ParquetCompression } from './declare';
+
+let snappyjs: any;
+let lzo: any;
+let lz4: any;
+let brotli: any;
 
 export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, {
   deflate: (value: Buffer) => Buffer,
@@ -55,22 +56,27 @@ function deflate_gzip(value: Buffer): Buffer {
 }
 
 function deflate_snappy(value: Buffer): Buffer {
-  return snappy.compress(value);
+  snappyjs = snappyjs || require('snappyjs');
+  return snappyjs.compress(value);
 }
 
 function deflate_lzo(value: Buffer): Buffer {
+  lzo = lzo || require('lzo');
   return lzo.compress(value);
 }
 
 function deflate_brotli(value: Buffer): Buffer {
-  return Buffer.from(brotli.compress(value, {
+  brotli = brotli || require('brotli');
+  const result = brotli.compress(value, {
     mode: 0,
     quality: 8,
     lgwin: 22
-  }));
+  });
+  return result ? Buffer.from(result) : Buffer.alloc(0);
 }
 
 function deflate_lz4(value: Buffer): Buffer {
+  lz4 = lz4 || require('lz4');
   try {
     let result = Buffer.alloc(lz4.encodeBound(value.length));
     const compressedSize = lz4.encodeBlock(value, result);
@@ -103,14 +109,17 @@ function inflate_gzip(value: Buffer): Buffer {
 }
 
 function inflate_snappy(value: Buffer): Buffer {
-  return snappy.uncompress(value);
+  snappyjs = snappyjs || require('snappyjs');
+  return snappyjs.uncompress(value);
 }
 
 function inflate_lzo(value: Buffer, size: number): Buffer {
+  lzo = lzo || require('lzo');
   return lzo.decompress(value, size);
 }
 
 function inflate_lz4(value: Buffer, size: number): Buffer {
+  lz4 = lz4 || require('lz4');
   try {
     let result = Buffer.alloc(size);
     const uncompressedSize = lz4.decodeBlock(value, result);
@@ -124,5 +133,9 @@ function inflate_lz4(value: Buffer, size: number): Buffer {
 }
 
 function inflate_brotli(value: Buffer): Buffer {
+  brotli = brotli || require('brotli');
+  if (!value.length) {
+    return Buffer.alloc(0);
+  }
   return Buffer.from(brotli.decompress(value));
 }

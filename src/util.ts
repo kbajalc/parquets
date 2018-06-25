@@ -1,7 +1,16 @@
 import fs = require('fs');
 import { TBufferedTransport, TCompactProtocol, TFramedTransport } from 'thrift';
-import { TODO, WriteStreamOptions } from './declare';
+import { TODO } from './declare';
 import { FileMetaData, PageHeader } from './gen/parquet_types';
+
+export interface WriteStreamOptions {
+  flags?: string;
+  encoding?: string;
+  fd?: number;
+  mode?: number;
+  autoClose?: boolean;
+  start?: number;
+}
 
 /**
  * Helper function that serializes a thrift object into a buffer

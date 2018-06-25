@@ -1,4 +1,4 @@
-import { ColumnData, FieldDefinition, RecordBuffer } from './declare';
+import { ColumnData, FieldDefinition, ParquetRow, RecordBuffer, TODO } from './declare';
 import { ParquetSchema } from './schema';
 import * as Types from './types';
 
@@ -21,13 +21,13 @@ import * as Types from './types';
  *          values: [v1, v2, .. vN],
  *        }, ...
  *      ],
- *      rowCount: X,
+ *      count: X,
  *   }
  *
  */
-export function shredRecord(schema: ParquetSchema, record: Record<string, any>, buffer: RecordBuffer) {
+export function shredRecord(schema: ParquetSchema, record: ParquetRow, buffer: RecordBuffer): void {
   /* shred the record, this may raise an exception */
-  const recordShredded = {};
+  const recordShredded: RecordBuffer = {};
   for (const field of schema.fieldList) {
     recordShredded[field.path as any] = {
       dlevels: [],
@@ -73,7 +73,7 @@ export function shredRecord(schema: ParquetSchema, record: Record<string, any>, 
   }
 }
 
-function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Record<string, any>, data: any, rlvl: number, dlvl: number) {
+function shredRecordInternal(fields: Record<string, FieldDefinition>, record: ParquetRow, data: RecordBuffer, rlvl: number, dlvl: number) {
   for (const fieldName in fields) {
     const field = fields[fieldName];
     const fieldType = field.originalType || field.primitiveType;
@@ -156,8 +156,8 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Re
  *   }
  *
  */
-export function materializeRecords(schema: ParquetSchema, buffer: Record<string, any>) {
-  const records = [];
+export function materializeRecords(schema: ParquetSchema, buffer: RecordBuffer) {
+  const records: TODO[] = [];
   for (let i = 0; i < buffer.rowCount; ++i) {
     records.push({});
   }
@@ -197,7 +197,7 @@ export function materializeRecords(schema: ParquetSchema, buffer: Record<string,
   return records;
 }
 
-function materializeRecordField(record, branch, rLevels, dLevel, value) {
+function materializeRecordField(record: TODO, branch: TODO, rLevels: number[], dLevel: number, value: any): void {
   const node = branch[0];
 
   if (dLevel < node.dLevelMax) {

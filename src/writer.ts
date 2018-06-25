@@ -2,7 +2,7 @@ import { WriteStream } from 'fs';
 import { Stream, Transform } from 'stream';
 import { PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
-import { TODO, WriteStreamOptions } from './declare';
+import { ParquetCodec, ParquetRow, ParquetRowGroup, ParquetType, RecordBuffer, TODO } from './declare';
 // tslint:disable-next-line:max-line-length
 import { ColumnChunk, ColumnMetaData, CompressionCodec, ConvertedType, DataPageHeader, DataPageHeaderV2, Encoding, FieldRepetitionType, FileMetaData, KeyValue, PageHeader, PageType, RowGroup, SchemaElement, Type } from './gen/parquet_types';
 import { ParquetSchema } from './schema';
@@ -31,6 +31,21 @@ const PARQUET_DEFAULT_ROW_GROUP_SIZE = 4096;
 const PARQUET_RDLVL_TYPE = 'INT32';
 const PARQUET_RDLVL_ENCODING = 'RLE';
 
+export interface ParquetWriterOptions {
+  baseOffset?: number;
+  rowGroupSize?: number;
+  pageSize?: number;
+  useDataPageV2?: boolean;
+
+  // Write Stream Options
+  flags?: string;
+  encoding?: string;
+  fd?: number;
+  mode?: number;
+  autoClose?: boolean;
+  start?: number;
+}
+
 /**
  * Write a parquet file to an output stream. The ParquetWriter will perform
  * buffering/batching for performance, so close() must be called after all rows
@@ -42,7 +57,7 @@ export class ParquetWriter {
    * Convenience method to create a new buffered parquet writer that writes to
    * the specified file
    */
-  static async openFile(schema: ParquetSchema, path: string, opts?: WriteStreamOptions): Promise<ParquetWriter> {
+  static async openFile(schema: ParquetSchema, path: string, opts?: ParquetWriterOptions): Promise<ParquetWriter> {
     const outputStream = await Util.osopen(path, opts);
     return ParquetWriter.openStream(schema, outputStream, opts);
   }
@@ -51,7 +66,7 @@ export class ParquetWriter {
    * Convenience method to create a new buffered parquet writer that writes to
    * the specified stream
    */
-  static async openStream(schema: ParquetSchema, outputStream: WriteStream, opts?: WriteStreamOptions): Promise<ParquetWriter> {
+  static async openStream(schema: ParquetSchema, outputStream: WriteStream, opts?: ParquetWriterOptions): Promise<ParquetWriter> {
     if (!opts) {
       // tslint:disable-next-line:no-parameter-reassignment
       opts = {};
@@ -68,16 +83,15 @@ export class ParquetWriter {
 
   public schema: ParquetSchema;
   public envelopeWriter: ParquetEnvelopeWriter;
-  public rowBuffer: Record<string, TODO>;
+  public rowBuffer: RecordBuffer;
   public rowGroupSize: number;
   public closed: boolean;
   public userMetadata: Record<string, string>;
-  public writer: any;
 
   /**
    * Create a new buffered parquet writer for a given envelope writer
    */
-  constructor(schema: ParquetSchema, envelopeWriter: ParquetEnvelopeWriter, opts: TODO) {
+  constructor(schema: ParquetSchema, envelopeWriter: ParquetEnvelopeWriter, opts: ParquetWriterOptions) {
     this.schema = schema;
     this.envelopeWriter = envelopeWriter;
     this.rowBuffer = {};
@@ -97,7 +111,7 @@ export class ParquetWriter {
    * Append a single row to the parquet file. Rows are buffered in memory until
    * rowGroupSize rows are in the buffer or close() is called
    */
-  async appendRow(row: Record<string, any>): Promise<void> {
+  async appendRow(row: ParquetRow): Promise<void> {
     if (this.closed) {
       throw 'writer was closed';
     }
@@ -159,9 +173,8 @@ export class ParquetWriter {
    * number of column values that are written to disk as a consecutive array
    */
   setPageSize(cnt: number): void {
-    this.writer.setPageSize(cnt);
+    this.envelopeWriter.setPageSize(cnt);
   }
-
 }
 
 /**
@@ -175,7 +188,7 @@ export class ParquetEnvelopeWriter {
   /**
    * Create a new parquet envelope writer that writes to the specified stream
    */
-  static async openStream(schema: ParquetSchema, outputStream: Stream, opts): Promise<ParquetEnvelopeWriter> {
+  static async openStream(schema: ParquetSchema, outputStream: Stream, opts: ParquetWriterOptions): Promise<ParquetEnvelopeWriter> {
     const writeFn = Util.oswrite.bind(undefined, outputStream);
     const closeFn = Util.osclose.bind(undefined, outputStream);
     return new ParquetEnvelopeWriter(schema, writeFn, closeFn, 0, opts);
@@ -186,22 +199,22 @@ export class ParquetEnvelopeWriter {
   public close: () => void;
   public offset: number;
   public rowCount: number;
-  public rowGroups: any[];
+  public rowGroups: RowGroup[];
   public pageSize: number;
   public useDataPageV2: boolean;
 
-  constructor(schema: ParquetSchema, writeFn: (buf: Buffer) => void, closeFn: () => void, fileOffset: number, opts) {
+  constructor(schema: ParquetSchema, writeFn: (buf: Buffer) => void, closeFn: () => void, fileOffset: number, opts: ParquetWriterOptions) {
     this.schema = schema;
     this.write = writeFn;
     this.close = closeFn;
     this.offset = fileOffset;
     this.rowCount = 0;
     this.rowGroups = [];
-    this.pageSize = PARQUET_DEFAULT_PAGE_SIZE;
+    this.pageSize = opts.pageSize || PARQUET_DEFAULT_PAGE_SIZE;
     this.useDataPageV2 = ('useDataPageV2' in opts) ? opts.useDataPageV2 : true;
   }
 
-  writeSection(buf): void {
+  writeSection(buf: Buffer): void {
     this.offset += buf.length;
     return this.write(buf);
   }
@@ -217,7 +230,7 @@ export class ParquetEnvelopeWriter {
    * Encode a parquet row group. The records object should be created using the
    * shredRecord method
    */
-  writeRowGroup(records): void {
+  writeRowGroup(records: RecordBuffer): void {
     const rgroup = encodeRowGroup(
       this.schema,
       records,
@@ -236,7 +249,7 @@ export class ParquetEnvelopeWriter {
   /**
    * Write the parquet file footer
    */
-  writeFooter(userMetadata) {
+  writeFooter(userMetadata: Record<string, string>): void {
     if (!userMetadata) {
       // tslint:disable-next-line:no-parameter-reassignment
       userMetadata = {};
@@ -250,18 +263,16 @@ export class ParquetEnvelopeWriter {
       throw 'cannot write parquet file with zero fieldList';
     }
 
-    return this.writeSection(
-      encodeFooter(this.schema, this.rowCount, this.rowGroups, userMetadata));
+    return this.writeSection(encodeFooter(this.schema, this.rowCount, this.rowGroups, userMetadata));
   }
 
   /**
    * Set the parquet data page size. The data page size controls the maximum
    * number of column values that are written to disk as a consecutive array
    */
-  setPageSize(cnt) {
+  setPageSize(cnt: number): void {
     this.pageSize = cnt;
   }
-
 }
 
 /**
@@ -271,7 +282,7 @@ export class ParquetTransformer extends Transform {
 
   public writer: ParquetWriter;
 
-  constructor(schema, opts = {}) {
+  constructor(schema, opts: ParquetWriterOptions = {}) {
     super({ objectMode: true });
 
     const writeProxy = (function (t) {
@@ -283,7 +294,8 @@ export class ParquetTransformer extends Transform {
     this.writer = new ParquetWriter(
       schema,
       new ParquetEnvelopeWriter(schema, writeProxy, () => ({}), 0, opts),
-      opts);
+      opts
+    );
   }
 
   // tslint:disable-next-line:function-name
@@ -305,7 +317,7 @@ export class ParquetTransformer extends Transform {
 /**
  * Encode a consecutive array of data using one of the parquet encodings
  */
-function encodeValues(type, encoding, values, opts) {
+function encodeValues(type: ParquetType, encoding: ParquetCodec, values: TODO, opts: TODO) {
   if (!(encoding in PARQUET_CODEC)) {
     throw 'invalid encoding: ' + encoding;
   }
@@ -489,7 +501,7 @@ function encodeColumnChunk(values, opts) {
 /**
  * Encode a list of column values into a parquet row group
  */
-function encodeRowGroup(schema: ParquetSchema, data, opts): { body: Buffer, metadata: TODO } {
+function encodeRowGroup(schema: ParquetSchema, data: RecordBuffer, opts: ParquetWriterOptions): ParquetRowGroup {
   const metadata = new RowGroup({
     num_rows: data.rowCount,
     columns: [],
@@ -531,7 +543,7 @@ function encodeRowGroup(schema: ParquetSchema, data, opts): { body: Buffer, meta
 /**
  * Encode a parquet file metadata footer
  */
-function encodeFooter(schema, rowCount, rowGroups, userMetadata) {
+function encodeFooter(schema: ParquetSchema, rowCount: number, rowGroups: RowGroup[], userMetadata: Record<string, string>) {
   const metadata = new FileMetaData({
     version: PARQUET_VERSION,
     created_by: 'parquets',
