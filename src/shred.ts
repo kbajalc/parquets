@@ -21,7 +21,7 @@ import * as Types from './types';
  *          values: [v1, v2, .. vN],
  *        }, ...
  *      ],
- *      count: X,
+ *      rowCount: X,
  *   }
  *
  */
