@@ -7,7 +7,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "PQT Program",
+            "name": "PRQ Program",
             "program": "${file}",
             "cwd": "${workspaceRoot}",
             "sourceMaps": true,
@@ -20,7 +20,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "PQT Jest",
+            "name": "PRQ Jest",
             "program": "${workspaceRoot}/jest",
             "args": [
                 "-i",

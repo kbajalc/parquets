@@ -26,11 +26,11 @@ const PARQUET_RDLVL_ENCODING = 'RLE';
 /**
  * A parquet cursor is used to retrieve rows from a parquet file in order
  */
-export class ParquetCursor {
+export class ParquetCursor<T> {
 
-  public metadata: any;
-  public envelopeReader: any;
-  public schema: any;
+  public metadata: TODO;
+  public envelopeReader: ParquetEnvelopeReader;
+  public schema: ParquetSchema;
   public columnList: string[][];
   public rowGroup: any[];
   public rowGroupIndex: number;
@@ -41,7 +41,7 @@ export class ParquetCursor {
    * advanced and internal use cases. Consider using getCursor() on the
    * ParquetReader instead
    */
-  constructor(metadata, envelopeReader, schema, columnList: string[][]) {
+  constructor(metadata: TODO, envelopeReader: ParquetEnvelopeReader, schema: ParquetSchema, columnList: string[][]) {
     this.metadata = metadata;
     this.envelopeReader = envelopeReader;
     this.schema = schema;
@@ -54,7 +54,7 @@ export class ParquetCursor {
    * Retrieve the next row from the cursor. Returns a row or NULL if the end
    * of the file was reached
    */
-  async next(): Promise<TODO[]> {
+  async next(): Promise<T> {
     if (this.rowGroup.length === 0) {
       if (this.rowGroupIndex >= this.metadata.row_groups.length) {
         return null;
@@ -89,19 +89,18 @@ export class ParquetCursor {
  * important that you call close() after you are finished reading the file to
  * avoid leaking file descriptors.
  */
-export class ParquetReader {
+export class ParquetReader<T> {
 
   /**
    * Open the parquet file pointed to by the specified path and return a new
    * parquet reader
    */
-  static async openFile(filePath: string): Promise<ParquetReader> {
+  static async openFile<T>(filePath: string): Promise<ParquetReader<T>> {
     const envelopeReader = await ParquetEnvelopeReader.openFile(filePath);
-
     try {
       await envelopeReader.readHeader();
       const metadata = await envelopeReader.readFooter();
-      return new ParquetReader(metadata, envelopeReader);
+      return new ParquetReader<T>(metadata, envelopeReader);
     } catch (err) {
       await envelopeReader.close();
       throw err;
@@ -137,7 +136,9 @@ export class ParquetReader {
    * from disk. An empty array or no value implies all columns. A list of column
    * names means that only those columns should be loaded from disk.
    */
-  getCursor(columnList?: (string | string[])[]): ParquetCursor {
+  getCursor(): ParquetCursor<T>;
+  getCursor(columnList: (string | string[])[]): ParquetCursor<Partial<T>>;
+  getCursor(columnList?: (string | string[])[]): ParquetCursor<Partial<T>> {
     if (!columnList) {
       // tslint:disable-next-line:no-parameter-reassignment
       columnList = [];
@@ -146,7 +147,7 @@ export class ParquetReader {
     // tslint:disable-next-line:no-parameter-reassignment
     columnList = columnList.map(x => Array.isArray(x) ? x : [x]);
 
-    return new ParquetCursor(
+    return new ParquetCursor<T>(
       this.metadata,
       this.envelopeReader,
       this.schema,
