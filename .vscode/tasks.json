@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "PRQ Watch",
+            "label": "PQT Watch",
             "identifier": "watch",
             "type": "npm",
             "script": "watch",
@@ -22,7 +22,7 @@
             }
         },
         {
-            "label": "PRQ Build",
+            "label": "PQT Build",
             "identifier": "build",
             "type": "npm",
             "script": "build",

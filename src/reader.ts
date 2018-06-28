@@ -1,8 +1,8 @@
 import { PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
-import { ColumnData, CursorType, ParquetCodec, ParquetType, RecordBuffer, SchemaDefinition, TODO } from './declare';
+import { ColumnData, CursorBuffer, ParquetCodec, ParquetType, RecordBuffer, SchemaDefinition, TODO } from './declare';
 // tslint:disable-next-line:max-line-length
-import { CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageHeader, PageType, Type } from './gen/parquet_types';
+import { ColumnChunk, CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageHeader, PageType, RowGroup, Type } from './gen/parquet_types';
 import { ParquetSchema } from './schema';
 import * as Shred from './shred';
 import * as Util from './util';
@@ -227,7 +227,7 @@ export class ParquetEnvelopeReader {
     }
   }
 
-  async readRowGroup(schema: ParquetSchema, rowGroup: TODO, columnList: TODO[]): Promise<RecordBuffer> {
+  async readRowGroup(schema: ParquetSchema, rowGroup: RowGroup, columnList: TODO[]): Promise<RecordBuffer> {
     const buffer: RecordBuffer = {
       rowCount: +rowGroup.num_rows,
       columnData: {}
@@ -241,13 +241,13 @@ export class ParquetEnvelopeReader {
         continue;
       }
 
-      buffer.columnData[colKey] = await this.readColumnChunk(schema, colChunk);
+      buffer.columnData[colKey as any] = await this.readColumnChunk(schema, colChunk);
     }
 
     return buffer;
   }
 
-  async readColumnChunk(schema: ParquetSchema, colChunk: TODO): Promise<ColumnData> {
+  async readColumnChunk(schema: ParquetSchema, colChunk: ColumnChunk): Promise<ColumnData> {
     if (colChunk.file_path !== undefined && colChunk.file_path !== null) {
       throw 'external references are not supported';
     }
@@ -279,13 +279,13 @@ export class ParquetEnvelopeReader {
     const trailerBuf = await this.read(this.fileSize - trailerLen, trailerLen);
 
     if (trailerBuf.slice(4).toString() !== PARQUET_MAGIC) {
-      throw 'not a valid parquet file';
+      throw new Error('not a valid parquet file');
     }
 
     const metadataSize = trailerBuf.readUInt32LE(0);
     const metadataOffset = this.fileSize - metadataSize - trailerLen;
     if (metadataOffset < PARQUET_MAGIC.length) {
-      throw 'invalid metadata size';
+      throw new Error('invalid metadata size');
     }
 
     const metadataBuf = await this.read(metadataOffset, metadataSize);
@@ -300,9 +300,9 @@ export class ParquetEnvelopeReader {
 /**
  * Decode a consecutive array of data using one of the parquet encodings
  */
-function decodeValues(type: ParquetType, encoding: ParquetCodec, cursor: CursorType, count: number, opts: TODO): any[] {
+function decodeValues(type: ParquetType, encoding: ParquetCodec, cursor: CursorBuffer, count: number, opts: TODO): any[] {
   if (!(encoding in PARQUET_CODEC)) {
-    throw 'invalid encoding: ' + encoding;
+    throw new Error('invalid encoding: ' + encoding);
   }
 
   return PARQUET_CODEC[encoding].decodeValues(type, cursor, count, opts);
@@ -342,7 +342,7 @@ function decodeDataPages(buffer: Buffer, opts: TODO): ColumnData {
         pageData = decodeDataPageV2(cursor, pageHeader, opts);
         break;
       default:
-        throw 'invalid page type: ' + pageType;
+        throw new Error('invalid page type: ' + pageType);
     }
 
     Array.prototype.push.apply(data.rlevels, pageData.rlevels);
@@ -354,7 +354,8 @@ function decodeDataPages(buffer: Buffer, opts: TODO): ColumnData {
   return data;
 }
 
-function decodeDataPage(cursor: CursorType, header: PageHeader, opts: TODO): ColumnData {
+function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): ColumnData {
+  const cursorEnd = cursor.offset + header.compressed_page_size;
   const valueCount = header.data_page_header.num_values;
   const valueEncoding = Util.getThriftEnum(
     Encoding,
@@ -406,11 +407,29 @@ function decodeDataPage(cursor: CursorType, header: PageHeader, opts: TODO): Col
       ++valueCountNonNull;
     }
   }
+  /* read values */
+  let valuesBufCursor = cursor;
+
+  if (opts.compression !== 'UNCOMPRESSED') {
+    const valuesBuf = Compression.inflate(
+      opts.compression,
+      cursor.buffer.slice(cursor.offset, cursorEnd),
+      header.uncompressed_page_size
+    );
+
+    valuesBufCursor = {
+      buffer: valuesBuf,
+      offset: 0,
+      size: valuesBuf.length
+    };
+
+    cursor.offset = cursorEnd;
+  }
 
   const values = decodeValues(
     opts.type,
-    valueEncoding as ParquetCodec,
-    cursor,
+    valueEncoding,
+    valuesBufCursor,
     valueCountNonNull,
     {
       typeLength: opts.column.typeLength,
@@ -425,7 +444,7 @@ function decodeDataPage(cursor: CursorType, header: PageHeader, opts: TODO): Col
   };
 }
 
-function decodeDataPageV2(cursor: CursorType, header: PageHeader, opts: TODO): ColumnData {
+function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, opts: TODO): ColumnData {
   const cursorEnd = cursor.offset + header.compressed_page_size;
 
   const valueCount = header.data_page_header_v2.num_values;

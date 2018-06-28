@@ -82,7 +82,7 @@ export interface ColumnData {
   count: number;
 }
 
-export interface CursorType {
+export interface CursorBuffer {
   buffer: Buffer;
   offset: number;
   size: number;
