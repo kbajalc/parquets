@@ -2,6 +2,11 @@
 
 Fully asynchronous TypeScript implementation of the Parquet file format
 
+[![Build Status](https://travis-ci.org/kbajalc/parquets.svg?branch=master)](https://travis-ci.org/kbajalc/parquets)
+[![npm version](https://badge.fury.io/js/parquets.svg)](https://badge.fury.io/js/parquets)
+[![npm dependency status](https://david-dm.org/kbajalc/parquets.svg)](https://david-dm.org/kbajalc/parquets.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
 This package is derived from [parquet.js](https://github.com/ironSource/parquetjs), contains a fully asynchronous 
 TypeScript implementation of the [Parquet](https://parquet.apache.org/) file format. The implementation conforms 
 with the [Parquet specification](https://github.com/apache/parquet-format) and is being tested
