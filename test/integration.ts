@@ -373,6 +373,5 @@ describe('Parquet', function () {
       const istream = objectStream.fromArray(mkTestRows());
       istream.pipe(transform).pipe(ostream);
     });
-
   });
 });
