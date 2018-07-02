@@ -20,7 +20,7 @@
     "clean": "rm -rf ./lib && rm -rf ./build",
     "build": "rm -rf ./lib ; rm -rf ./build ; tsc -p src ; tsc -p .",
     "watch": "rm -rf ./lib ; tsc -p src --watch",
-    "test": "rm -rf ./build ; tsc -p . && jest --verbose test/*.ts",
+    "test": "jest --verbose test/*.ts",
     "tsgen": "thrift-typescript --target apache --rootDir . --sourceDir . --outDir codegen parquet.thrift",
     "thrift": "thrift --gen js:node parquet.thrift && thrift --gen js:ts parquet.thrift",
     "peer": "npm i brotli lzo lz4js --no-save"
