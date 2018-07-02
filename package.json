@@ -68,7 +68,7 @@
     },
     "testRegex": "(test/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
     "testPathIgnorePatterns": [
-      "build/"
+      "<rootDir>/build"
     ],
     "moduleFileExtensions": [
       "ts",
