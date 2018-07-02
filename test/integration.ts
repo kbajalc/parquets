@@ -370,7 +370,7 @@ describe('Parquet', function () {
   describe('using the Stream/Transform API', function () {
 
     it('write a test file', async function () {
-      const opts = { useDataPageV2: true, compression: 'GZIP' };
+      const opts: any = { useDataPageV2: true, compression: 'GZIP' };
       const schema = mkTestSchema(opts);
       const transform = new parquet.ParquetTransformer(schema, opts);
       transform.writer.setMetadata('myuid', '420');

@@ -340,19 +340,26 @@ function encodeValues(type: ParquetType, encoding: ParquetCodec, values: TODO, o
 /**
  * Encode a parquet data page
  */
-function encodeDataPage(column, valueCount, values, rlevels, dlevels, compression): [PageHeader, Buffer] {
+function encodeDataPage(
+  column: TODO,
+  valueCount: number,
+  rowCount: number,
+  values: TODO,
+  rlevels: number[],
+  dlevels: number[],
+  compression: ParquetCompression
+): { header: PageHeader, headerSize, page: Buffer } {
   /* encode values */
   const valuesBuf = encodeValues(
     column.primitiveType,
     column.encoding,
-    values, {
-      typeLength: column.typeLength,
-      bitWidth: column.typeLength
-    });
+    values,
+    { typeLength: column.typeLength, bitWidth: column.typeLength }
+  );
 
-  const valuesBufCompressed = Compression.deflate(
-    compression,
-    valuesBuf);
+  // tslint:disable-next-line:no-parameter-reassignment
+  compression = column.compression === 'UNCOMPRESSED' ? (compression || 'UNCOMPRESSED') : column.compression;
+  const compressedBuf = Compression.deflate(compression, valuesBuf);
 
   /* encode repetition and definition levels */
   let rLevelsBuf = Buffer.alloc(0);
@@ -374,7 +381,7 @@ function encodeDataPage(column, valueCount, values, rlevels, dlevels, compressio
   }
 
   /* build page header */
-  const pageHeader = new PageHeader({
+  const header = new PageHeader({
     type: PageType.DATA_PAGE,
     data_page_header: new DataPageHeader({
       num_values: valueCount,
@@ -385,36 +392,43 @@ function encodeDataPage(column, valueCount, values, rlevels, dlevels, compressio
         Encoding[PARQUET_RDLVL_ENCODING], // [PARQUET_RDLVL_ENCODING]
     }),
     uncompressed_page_size: rLevelsBuf.length + dLevelsBuf.length + valuesBuf.length,
-    compressed_page_size: rLevelsBuf.length + dLevelsBuf.length + valuesBufCompressed.length
+    compressed_page_size: rLevelsBuf.length + dLevelsBuf.length + compressedBuf.length
   });
 
   /* concat page header, repetition and definition levels and values */
-  const result = Buffer.concat([
-    Util.serializeThrift(pageHeader),
+  const headerBuf = Util.serializeThrift(header);
+  const page = Buffer.concat([
+    headerBuf,
     rLevelsBuf,
     dLevelsBuf,
-    valuesBufCompressed
+    compressedBuf
   ]);
 
-  return [pageHeader, result];
+  return { header, headerSize: headerBuf.length, page };
 }
 
 /**
  * Encode a parquet data page (v2)
  */
-function encodeDataPageV2(column, valueCount, rowCount, values, rlevels, dlevels): [PageHeader, Buffer] {
+function encodeDataPageV2(
+  column: TODO,
+  valueCount: number,
+  rowCount: number,
+  values: TODO,
+  rlevels: number[],
+  dlevels: number[],
+  compression: ParquetCompression
+): { header: PageHeader, headerSize, page: Buffer } {
   /* encode values */
   const valuesBuf = encodeValues(
     column.primitiveType,
     column.encoding,
-    values, {
-      typeLength: column.typeLength,
-      bitWidth: column.typeLength
-    });
+    values, { typeLength: column.typeLength, bitWidth: column.typeLength }
+  );
 
-  const valuesBufCompressed = Compression.deflate(
-    column.compression,
-    valuesBuf);
+  // tslint:disable-next-line:no-parameter-reassignment
+  compression = column.compression === 'UNCOMPRESSED' ? (compression || 'UNCOMPRESSED') : column.compression;
+  const compressedBuf = Compression.deflate(compression, valuesBuf);
 
   /* encode repetition and definition levels */
   let rLevelsBuf = Buffer.alloc(0);
@@ -440,7 +454,7 @@ function encodeDataPageV2(column, valueCount, rowCount, values, rlevels, dlevels
   }
 
   /* build page header */
-  const pageHeader = new PageHeader({
+  const header = new PageHeader({
     type: PageType.DATA_PAGE_V2,
     data_page_header_v2: new DataPageHeaderV2({
       num_values: valueCount,
@@ -449,20 +463,21 @@ function encodeDataPageV2(column, valueCount, rowCount, values, rlevels, dlevels
       encoding: Encoding[column.encoding] as any,
       definition_levels_byte_length: dLevelsBuf.length,
       repetition_levels_byte_length: rLevelsBuf.length,
-      is_compressed: column.compression !== 'UNCOMPRESSED'
+      is_compressed: compression !== 'UNCOMPRESSED'
     }),
     uncompressed_page_size: rLevelsBuf.length + dLevelsBuf.length + valuesBuf.length,
-    compressed_page_size: rLevelsBuf.length + dLevelsBuf.length + valuesBufCompressed.length
+    compressed_page_size: rLevelsBuf.length + dLevelsBuf.length + compressedBuf.length
   });
 
   /* concat page header, repetition and definition levels and values */
-  const result = Buffer.concat([
-    Util.serializeThrift(pageHeader),
+  const headerBuf = Util.serializeThrift(header);
+  const page = Buffer.concat([
+    headerBuf,
     rLevelsBuf,
     dLevelsBuf,
-    valuesBufCompressed
+    compressedBuf
   ]);
-  return [pageHeader, result];
+  return { header, headerSize: headerBuf.length, page };
 }
 
 /**
@@ -476,31 +491,36 @@ function encodeColumnChunk(values, opts) {
   // tslint:disable-next-line:variable-name
   let total_compressed_size = 0;
   {
-    let pageHeader: PageHeader;
-    let dataPage: Buffer;
+    let result: any;
     if (opts.useDataPageV2) {
-      [pageHeader, dataPage] = encodeDataPageV2(
+      result = encodeDataPageV2(
         opts.column,
         values.count,
         opts.rowCount,
         values.values,
         values.rlevels,
-        values.dlevels);
+        values.dlevels,
+        opts.compression
+      );
     } else {
-      [pageHeader, dataPage] = encodeDataPage(
+      result = encodeDataPage(
         opts.column,
         values.count,
+        opts.rowCount,
         values.values,
         values.rlevels,
         values.dlevels,
-        opts.compression);
+        opts.compression
+      );
     }
-    pages.push(dataPage);
-    total_uncompressed_size = pageHeader.uncompressed_page_size;
-    total_compressed_size = pageHeader.compressed_page_size;
+    pages.push(result.page);
+    total_uncompressed_size += result.header.uncompressed_page_size + result.headerSize;
+    total_compressed_size += result.header.compressed_page_size + result.headerSize;
   }
 
   const pagesBuf = Buffer.concat(pages);
+
+  const compression = opts.column.compression === 'UNCOMPRESSED' ? (opts.compression || 'UNCOMPRESSED') : opts.column.compression;
 
   /* prepare metadata header */
   const metadata = new ColumnMetaData({
@@ -509,11 +529,9 @@ function encodeColumnChunk(values, opts) {
     data_page_offset: opts.baseOffset,
     encodings: [],
     total_uncompressed_size, //  : pagesBuf.length,
-    total_compressed_size: pagesBuf.length,
+    total_compressed_size,
     type: Type[opts.column.primitiveType] as any,
-    codec: CompressionCodec[opts.useDataPageV2
-      ? opts.column.compression
-      : (opts.compression || 'UNCOMPRESSED')] as any
+    codec: CompressionCodec[compression] as any
   });
 
   /* list encodings */

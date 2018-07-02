@@ -1,4 +1,6 @@
 package
+package.lock
 build
 gen-node-js
+dev
 *.parquet
