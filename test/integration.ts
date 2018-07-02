@@ -290,7 +290,7 @@ async function readTestFile() {
 
 // tslint:disable:ter-prefer-arrow-callback
 describe('Parquet', function () {
-  jest.setTimeout(60000);
+  jest.setTimeout(90000);
 
   describe('with DataPageHeaderV1', function () {
     it('write a test file', function () {
@@ -302,22 +302,37 @@ describe('Parquet', function () {
       const opts = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts).then(readTestFile);
     });
-  });
 
-  describe('with DataPageHeaderV2', function () {
-    it('write a test file', function () {
-      const opts = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
-      return writeTestFile(opts);
-    });
-
-    it('write a test file and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
+    it('write a test file with GZIP compression and then read it back', function () {
+      const opts = { useDataPageV2: false, compression: 'GZIP' };
       return writeTestFile(opts).then(readTestFile);
     });
 
-    it('write a test file with GZIP compression', function () {
-      const opts = { useDataPageV2: true, compression: 'GZIP' };
-      return writeTestFile(opts);
+    it('write a test file with SNAPPY compression and then read it back', function () {
+      const opts = { useDataPageV2: false, compression: 'SNAPPY' };
+      return writeTestFile(opts).then(readTestFile);
+    });
+
+    it('write a test file with LZO compression and then read it back', function () {
+      const opts = { useDataPageV2: false, compression: 'LZO' };
+      return writeTestFile(opts).then(readTestFile);
+    });
+
+    it('write a test file with BROTLI compression and then read it back', function () {
+      const opts = { useDataPageV2: false, compression: 'BROTLI' };
+      return writeTestFile(opts).then(readTestFile);
+    });
+
+    it('write a test file with LZ4 compression and then read it back', function () {
+      const opts = { useDataPageV2: false, compression: 'LZ4' };
+      return writeTestFile(opts).then(readTestFile);
+    });
+  });
+
+  describe('with DataPageHeaderV2', function () {
+    it('write a test file and then read it back', function () {
+      const opts = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
+      return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with GZIP compression and then read it back', function () {
@@ -325,19 +340,9 @@ describe('Parquet', function () {
       return writeTestFile(opts).then(readTestFile);
     });
 
-    it('write a test file with SNAPPY compression', function () {
-      const opts = { useDataPageV2: true, compression: 'SNAPPY' };
-      return writeTestFile(opts);
-    });
-
     it('write a test file with SNAPPY compression and then read it back', function () {
       const opts = { useDataPageV2: true, compression: 'SNAPPY' };
       return writeTestFile(opts).then(readTestFile);
-    });
-
-    it('write a test file with LZO compression', function () {
-      const opts = { useDataPageV2: true, compression: 'LZO' };
-      return writeTestFile(opts);
     });
 
     it('write a test file with LZO compression and then read it back', function () {
@@ -345,19 +350,9 @@ describe('Parquet', function () {
       return writeTestFile(opts).then(readTestFile);
     });
 
-    it('write a test file with BROTLI compression', function () {
-      const opts = { useDataPageV2: true, compression: 'BROTLI' };
-      return writeTestFile(opts);
-    });
-
     it('write a test file with BROTLI compression and then read it back', function () {
       const opts = { useDataPageV2: true, compression: 'BROTLI' };
       return writeTestFile(opts).then(readTestFile);
-    });
-
-    it('write a test file with LZ4 compression', function () {
-      const opts = { useDataPageV2: true, compression: 'LZ4' };
-      return writeTestFile(opts);
     });
 
     it('write a test file with LZ4 compression and then read it back', function () {
