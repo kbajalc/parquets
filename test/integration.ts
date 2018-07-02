@@ -363,19 +363,16 @@ describe('Parquet', function () {
   });
 
   describe('using the Stream/Transform API', function () {
-
     it('write a test file', async function () {
       const opts: any = { useDataPageV2: true, compression: 'GZIP' };
       const schema = mkTestSchema(opts);
       const transform = new parquet.ParquetTransformer(schema, opts);
       transform.writer.setMetadata('myuid', '420');
       transform.writer.setMetadata('fnord', 'dronf');
-
       const ostream = fs.createWriteStream('fruits_stream.parquet');
       const istream = objectStream.fromArray(mkTestRows());
       istream.pipe(transform).pipe(ostream);
     });
 
   });
-
 });
