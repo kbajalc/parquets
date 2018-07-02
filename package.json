@@ -1,7 +1,7 @@
 {
   "name": "parquets",
   "description": "TypeScript implementation of the Parquet file format, based on parquet.js",
-  "version": "0.8.7",
+  "version": "0.8.8",
   "homepage": "https://github.com/kbajalc/parquets",
   "author": "kbajalc@gmail.com",
   "license": "MIT",
