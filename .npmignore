@@ -4,3 +4,5 @@ build
 gen-node-js
 dev
 *.parquet
+!lib
+!src
