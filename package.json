@@ -1,13 +1,13 @@
 {
   "name": "parquets",
   "description": "TypeScript implementation of the Parquet file format, based on parquet.js",
-  "version": "0.8.15",
+  "version": "0.8.14",
   "homepage": "https://github.com/kbajalc/parquets",
   "author": "kbajalc@gmail.com",
   "license": "MIT",
-  "main": "lib/index.js",
-  "source": "src/index.ts",
-  "typings": "lib/index.d.ts",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "source": "./src/index.ts",
   "keywords": [
     "dremel",
     "parquet"
@@ -20,7 +20,7 @@
     "clean": "rm -rf ./lib && rm -rf ./build",
     "build": "rm -rf ./lib ; rm -rf ./build ; tsc -p src ; tsc -p .",
     "watch": "rm -rf ./lib ; tsc -p src --watch",
-    "test": "jest --verbose test/*.ts",
+    "test": "tsc -p src && jest --verbose test/*.ts",
     "tsgen": "thrift-typescript --target apache --rootDir . --sourceDir . --outDir codegen parquet.thrift",
     "thrift": "thrift --gen js:node parquet.thrift && thrift --gen js:ts parquet.thrift",
     "peer": "npm i brotli lzo lz4js --no-save"

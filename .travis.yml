@@ -1,3 +1,4 @@
+# https://medium.com/@russleyshaw/typescript-package-deployment-with-travisci-df788ffb8563
 language: node_js
 node_js:
 - 8
