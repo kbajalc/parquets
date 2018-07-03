@@ -89,7 +89,7 @@ export function getThriftEnum(klass: Object, value: number | string): string {
       return k;
     }
   }
-  throw 'Invalid ENUM value';
+  throw new Error('Invalid ENUM value');
 }
 
 export function fopen(filePath: string): Promise<number> {

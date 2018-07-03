@@ -119,7 +119,7 @@ export class ParquetReader<T> {
    */
   constructor(metadata: FileMetaData, envelopeReader: ParquetEnvelopeReader) {
     if (metadata.version !== PARQUET_VERSION) {
-      throw 'invalid parquet version';
+      throw new Error('invalid parquet version');
     }
 
     this.metadata = metadata;
@@ -223,7 +223,7 @@ export class ParquetEnvelopeReader {
     const buf = await this.read(0, PARQUET_MAGIC.length);
 
     if (buf.toString() !== PARQUET_MAGIC) {
-      throw 'not valid parquet file';
+      throw new Error('not valid parquet file');
     }
   }
 
@@ -249,7 +249,7 @@ export class ParquetEnvelopeReader {
 
   async readColumnChunk(schema: ParquetSchema, colChunk: ColumnChunk): Promise<ColumnData> {
     if (colChunk.file_path !== undefined && colChunk.file_path !== null) {
-      throw 'external references are not supported';
+      throw new Error('external references are not supported');
     }
 
     const field = schema.findField(colChunk.meta_data.path_in_schema);
@@ -376,7 +376,11 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
       rLevelEncoding,
       cursor,
       valueCount,
-      { bitWidth: Util.getBitWidth(opts.rLevelMax) });
+      {
+        bitWidth: Util.getBitWidth(opts.rLevelMax),
+        disableEnvelope: false
+      }
+    );
   } else {
     rLevels.fill(0);
   }
@@ -395,7 +399,11 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
       dLevelEncoding,
       cursor,
       valueCount,
-      { bitWidth: Util.getBitWidth(opts.dLevelMax) });
+      {
+        bitWidth: Util.getBitWidth(opts.dLevelMax),
+        disableEnvelope: false
+      }
+    );
   } else {
     dLevels.fill(0);
   }

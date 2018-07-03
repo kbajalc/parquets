@@ -114,7 +114,7 @@ export class ParquetWriter<T> {
    */
   async appendRow<T>(row: T & ParquetRow): Promise<void> {
     if (this.closed) {
-      throw 'writer was closed';
+      throw new Error('writer was closed');
     }
 
     Shred.shredRecord(this.schema, row, this.rowBuffer);
@@ -264,11 +264,11 @@ export class ParquetEnvelopeWriter {
     }
 
     if (this.rowCount === 0) {
-      throw 'cannot write parquet file with zero rows';
+      throw new Error('cannot write parquet file with zero rows');
     }
 
     if (this.schema.fieldList.length === 0) {
-      throw 'cannot write parquet file with zero fieldList';
+      throw new Error('cannot write parquet file with zero fieldList');
     }
 
     return this.writeSection(encodeFooter(this.schema, this.rowCount, this.rowGroups, userMetadata));
@@ -331,7 +331,7 @@ export class ParquetTransformer<T> extends Transform {
  */
 function encodeValues(type: ParquetType, encoding: ParquetCodec, values: TODO, opts: TODO) {
   if (!(encoding in PARQUET_CODEC)) {
-    throw 'invalid encoding: ' + encoding;
+    throw new Error('invalid encoding: ' + encoding);
   }
 
   return PARQUET_CODEC[encoding].encodeValues(type, values, opts);
@@ -368,7 +368,11 @@ function encodeDataPage(
       PARQUET_RDLVL_TYPE,
       PARQUET_RDLVL_ENCODING,
       rlevels,
-      { bitWidth: Util.getBitWidth(column.rLevelMax) });
+      {
+        bitWidth: Util.getBitWidth(column.rLevelMax)
+        // disableEnvelope: false
+      }
+    );
   }
 
   let dLevelsBuf = Buffer.alloc(0);
@@ -377,7 +381,11 @@ function encodeDataPage(
       PARQUET_RDLVL_TYPE,
       PARQUET_RDLVL_ENCODING,
       dlevels,
-      { bitWidth: Util.getBitWidth(column.dLevelMax) });
+      {
+        bitWidth: Util.getBitWidth(column.dLevelMax)
+        // disableEnvelope: false
+      }
+    );
   }
 
   /* build page header */
@@ -485,7 +493,8 @@ function encodeDataPageV2(
  */
 function encodeColumnChunk(values, opts) {
   /* encode data page(s) */
-  const pages: Buffer[] = [];
+  // const pages: Buffer[] = [];
+  let pageBuf: Buffer;
   // tslint:disable-next-line:variable-name
   let total_uncompressed_size = 0;
   // tslint:disable-next-line:variable-name
@@ -513,12 +522,13 @@ function encodeColumnChunk(values, opts) {
         opts.compression
       );
     }
-    pages.push(result.page);
+    // pages.push(result.page);
+    pageBuf = result.page;
     total_uncompressed_size += result.header.uncompressed_page_size + result.headerSize;
     total_compressed_size += result.header.compressed_page_size + result.headerSize;
   }
 
-  const pagesBuf = Buffer.concat(pages);
+  // const pagesBuf = Buffer.concat(pages);
 
   const compression = opts.column.compression === 'UNCOMPRESSED' ? (opts.compression || 'UNCOMPRESSED') : opts.column.compression;
 
@@ -543,8 +553,8 @@ function encodeColumnChunk(values, opts) {
   }
 
   /* concat metadata header and data pages */
-  const metadataOffset = opts.baseOffset + pagesBuf.length;
-  const body = Buffer.concat([pagesBuf, Util.serializeThrift(metadata)]);
+  const metadataOffset = opts.baseOffset + pageBuf.length;
+  const body = Buffer.concat([pageBuf, Util.serializeThrift(metadata)]);
   return { body, metadata, metadataOffset };
 }
 

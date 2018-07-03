@@ -3,7 +3,7 @@ import { ParquetType, TODO } from '../declare';
 
 function encodeRunBitpacked(values: number[], opts: TODO): Buffer {
   if (values.length % 8 !== 0) {
-    throw 'must be a multiple of 8';
+    throw new Error('must be a multiple of 8');
   }
 
   const buf = Buffer.alloc(Math.ceil(opts.bitWidth * (values.length / 8)));
@@ -35,7 +35,7 @@ function encodeRunRepeated(value: number, count: number, opts: TODO) {
 
 export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buffer {
   if (!('bitWidth' in opts)) {
-    throw 'bitWidth is required';
+    throw new Error('bitWidth is required');
   }
 
   switch (type) {
@@ -48,7 +48,7 @@ export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buff
       break;
 
     default:
-      throw 'unsupported type: ' + type;
+      throw new Error('unsupported type: ' + type);
   }
 
   let buf = Buffer.alloc(0);
@@ -100,7 +100,7 @@ export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buff
 
 function decodeRunBitpacked(cursor: TODO, count: number, opts: TODO): number[] {
   if (count % 8 !== 0) {
-    throw 'must be a multiple of 8';
+    throw new Error('must be a multiple of 8');
   }
 
   // tslint:disable-next-line:prefer-array-literal
@@ -129,7 +129,7 @@ function decodeRunRepeated(cursor: TODO, count: number, opts: TODO): number[] {
 
 export function decodeValues(type: ParquetType, cursor: TODO, count: number, opts: TODO): number[] {
   if (!('bitWidth' in opts)) {
-    throw 'bitWidth is required';
+    throw new Error('bitWidth is required');
   }
 
   if (!opts.disableEnvelope) {
@@ -150,7 +150,7 @@ export function decodeValues(type: ParquetType, cursor: TODO, count: number, opt
   }
 
   if (values.length !== count) {
-    throw 'invalid RLE encoding';
+    throw new Error('invalid RLE encoding');
   }
 
   return values;

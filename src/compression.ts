@@ -41,7 +41,7 @@ export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, {
  */
 export function deflate(method: ParquetCompression, value: Buffer): Buffer {
   if (!(method in PARQUET_COMPRESSION_METHODS)) {
-    throw 'invalid compression method: ' + method;
+    throw new Error('invalid compression method: ' + method);
   }
 
   return PARQUET_COMPRESSION_METHODS[method].deflate(value);
@@ -93,7 +93,7 @@ function deflate_lz4(value: Buffer): Buffer {
  */
 export function inflate(method: ParquetCompression, value: Buffer, size: number): Buffer {
   if (!(method in PARQUET_COMPRESSION_METHODS)) {
-    throw 'invalid compression method: ' + method;
+    throw new Error('invalid compression method: ' + method);
   }
 
   return PARQUET_COMPRESSION_METHODS[method].inflate(value, size);
