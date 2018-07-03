@@ -1,7 +1,7 @@
-import { SchemaDefinition } from '../declare';
-import { ParquetReader } from '../reader';
-import { ParquetSchema } from '../schema';
-import { ParquetWriter } from '../writer';
+import { SchemaDefinition } from '../src/declare';
+import { ParquetReader } from '../src/reader';
+import { ParquetSchema } from '../src/schema';
+import { ParquetWriter } from '../src/writer';
 
 main();
 
