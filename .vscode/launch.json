@@ -14,7 +14,7 @@
             "preLaunchTask": "watch",
             "showAsyncStacks": true,
             "outFiles": [
-                "${workspaceRoot}/lib/**/*.js"
+                "${workspaceRoot}/build/**/*.js"
             ]
         },
         {
@@ -36,50 +36,22 @@
                 "${workspaceRoot}/build/**/*.js"
             ]
         },
-        /*
         {
             "type": "node",
             "request": "launch",
-            "name": "Nea DEV",
-            "program": "${workspaceRoot}/nea/dev.js",
-            "cwd": "${workspaceRoot}",
-            "sourceMaps": true,
-            "preLaunchTask": "tsc"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Nea PROD",
-            "program": "${workspaceRoot}/nea/prod.js",
-            "cwd": "${workspaceRoot}",
-            "sourceMaps": true,
-            "preLaunchTask": "tsc"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Sync",
-            "program": "${workspaceRoot}/iot/sync.js",
-            "cwd": "${workspaceRoot}",
-            "sourceMaps": true,
-            "preLaunchTask": "tsc"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Pump",
-            "program": "${workspaceRoot}/iot/pump.js",
-            "cwd": "${workspaceRoot}",
-            "sourceMaps": true,
-            "preLaunchTask": "tsc"
-        },
-        {
-            "type": "node",
-            "request": "attach",
-            "name": "Attach to Process",
-            "port": 5858,
-            "outFiles": []
+            "name": "PQT Jest File",
+            "program": "${workspaceFolder}/node_modules/.bin/jest",
+            "args": [
+                "${relativeFile}",
+                "--config",
+                "jest.config.js"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+            }
         }
-        */
     ]
 }
