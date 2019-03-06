@@ -2,8 +2,8 @@ import varint = require('varint');
 import { ParquetType, TODO } from '../declare';
 
 function encodeRunBitpacked(values: number[], opts: TODO): Buffer {
-  if (values.length % 8 !== 0) {
-    throw new Error('must be a multiple of 8');
+  for (let i = 0; i < values.length % 8; i++) {
+    values.push(0);
   }
 
   const buf = Buffer.alloc(Math.ceil(opts.bitWidth * (values.length / 8)));
@@ -52,39 +52,35 @@ export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buff
   }
 
   let buf = Buffer.alloc(0);
-  const runs = [];
-  for (let cur = 0; cur < values.length; cur += 8) {
-    let repeating = true;
-    for (let i = 1; i < 8; ++i) {
-      if (values[cur + i] !== values[cur]) {
-        repeating = false;
+  let run = [];
+  let repeats = 0;
+
+  for (let i = 0; i < values.length; i++) {
+    // If we are at the beginning of a run and the next value is same we start
+    // collecting repeated values
+    if (repeats === 0 && run.length % 8 === 0 && values[i] === values[i + 1]) {
+      // If we have any data in runs we need to encode them
+      if (run.length) {
+        buf = Buffer.concat([buf, encodeRunBitpacked(run, opts)]);
+        run = [];
       }
-    }
-
-    const append =
-      runs.length > 0 &&
-      (runs[runs.length - 1][1] !== null) === repeating &&
-      (!repeating || runs[runs.length - 1][1] === values[cur]);
-
-    if (!append) {
-      runs.push([cur, repeating ? values[cur] : null]);
-    }
-  }
-
-  for (let i = values.length - (values.length % 8); i < values.length; ++i) {
-    runs.push([i, values[i]]);
-  }
-
-  for (let i = 0; i < runs.length; ++i) {
-    const begin = runs[i][0];
-    const end = i < runs.length - 1 ? runs[i + 1][0] : values.length;
-    const rep = runs[i][1];
-
-    if (rep === null) {
-      buf = Buffer.concat([buf, encodeRunBitpacked(values.slice(begin, end), opts)]);
+      repeats = 1;
+    } else if (repeats > 0 && values[i] === values[i - 1]) {
+      repeats += 1;
     } else {
-      buf = Buffer.concat([buf, encodeRunRepeated(rep, end - begin, opts)]);
+      // If values changes we need to post any previous repeated values
+      if (repeats) {
+        buf = Buffer.concat([buf, encodeRunRepeated(values[i - 1], repeats, opts)]);
+        repeats = 0;
+      }
+      run.push(values[i]);
     }
+  }
+
+  if (repeats) {
+    buf = Buffer.concat([buf, encodeRunRepeated(values[values.length - 1], repeats, opts)]);
+  } else if (run.length) {
+    buf = Buffer.concat([buf, encodeRunBitpacked(run, opts)]);
   }
 
   if (opts.disableEnvelope) {
@@ -136,7 +132,7 @@ export function decodeValues(type: ParquetType, cursor: TODO, count: number, opt
     cursor.offset += 4;
   }
 
-  const values = [];
+  let values = [];
   while (values.length < count) {
     const header = varint.decode(cursor.buffer, cursor.offset);
     cursor.offset += varint.encodingLength(header);
@@ -148,6 +144,7 @@ export function decodeValues(type: ParquetType, cursor: TODO, count: number, opt
       values.push(...decodeRunRepeated(cursor, count, opts));
     }
   }
+  values = values.slice(0, count);
 
   if (values.length !== count) {
     throw new Error('invalid RLE encoding');

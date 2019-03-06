@@ -1,7 +1,7 @@
 {
   "name": "parquets",
   "description": "TypeScript implementation of the Parquet file format, based on parquet.js",
-  "version": "0.8.16",
+  "version": "0.10.1",
   "homepage": "https://github.com/kbajalc/parquets",
   "author": "kbajalc@gmail.com",
   "license": "MIT",
@@ -23,7 +23,9 @@
     "test": "tsc -p src && jest --verbose test/*.ts",
     "tsgen": "thrift-typescript --target apache --rootDir . --sourceDir . --outDir codegen parquet.thrift",
     "thrift": "thrift --gen js:node parquet.thrift && thrift --gen js:ts parquet.thrift",
-    "peer": "npm i brotli lzo lz4js --no-save"
+    "peer": "npm i brotli lzo lz4js --no-save",
+    "drill": "../../tools/apache-drill-1.15.0/bin/drill-embedded",
+    "sql": "echo SELECT CONVERT_FROM(timestamp_field, 'TIMESTAMP_IMPALA') as timestamp_field FROM `dfs.file_with_timestamp.parquet`"
   },
   "engines": {
     "node": ">=7.6"
@@ -34,7 +36,7 @@
     "int53": "^0.2.4",
     "object-stream": "0.0.1",
     "snappyjs": "^0.6.0",
-    "thrift": "^0.10.0",
+    "thrift": "^0.11.0",
     "varint": "^5.0.0"
   },
   "peerDependencies": {
@@ -43,20 +45,20 @@
     "lz4js": "^0.2.0"
   },
   "devDependencies": {
-    "@creditkarma/thrift-typescript": "^2.0.0",
-    "@types/bson": "^1.0.9",
+    "@creditkarma/thrift-typescript": "^2.0.4",
+    "@types/bson": "^1.0.11",
     "@types/debug": "0.0.30",
     "@types/jest": "^22.2.3",
-    "@types/node": "^10.5.1",
+    "@types/node": "^10.5.2",
     "brotli": "^1.3.0",
     "chai": "^4.1.2",
     "jest": "^22.4.4",
-    "jest-environment-node": "^23.2.0",
+    "jest-environment-node": "^23.4.0",
     "lz4js": "^0.2.0",
     "lzo": "^0.4.3",
     "ts-jest": "^22.4.6",
     "ts-node": "^5.0.1",
-    "tslint": "^5.10.0",
+    "tslint": "^5.11.0",
     "tslint-config-airbnb": "^5.9.2",
     "typescript": "^2.9.2"
   },
