@@ -3,7 +3,7 @@ package
 package.lock
 build
 gen-node-js
-dev
+dump
 *.parquet
 !lib
 !src

@@ -184,7 +184,7 @@ function encodeValues_FIXED_LEN_BYTE_ARRAY(values: TODO, opts: FieldDefinition):
     values[i] = Buffer.from(values[i]);
 
     if (values[i].length !== opts.typeLength) {
-      throw new Error('invalid value for FIXED_LEN_BYTE_ARRAY: ' + values[i]);
+      throw new Error(`invalid value for FIXED_LEN_BYTE_ARRAY: ${values[i]}`);
     }
   }
 
@@ -225,7 +225,7 @@ export function encodeValues(type: ParquetType, values: any, opts?: TODO): Buffe
     case 'FIXED_LEN_BYTE_ARRAY':
       return encodeValues_FIXED_LEN_BYTE_ARRAY(values, opts);
     default:
-      throw new Error('unsupported type: ' + type);
+      throw new Error(`unsupported type: ${type}`);
   }
 }
 
@@ -248,6 +248,6 @@ export function decodeValues(type: ParquetType, cursor: TODO, count: number, opt
     case 'FIXED_LEN_BYTE_ARRAY':
       return decodeValues_FIXED_LEN_BYTE_ARRAY(cursor, count, opts);
     default:
-      throw new Error('unsupported type: ' + type);
+      throw new Error(`unsupported type: ${type}`);
   }
 }

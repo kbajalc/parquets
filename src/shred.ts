@@ -90,11 +90,11 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Pa
 
     // check values
     if (values.length === 0 && !!record && field.repetitionType === 'REQUIRED') {
-      throw new Error('missing required field: ' + field.name);
+      throw new Error(`missing required field: ${field.name}`);
     }
 
     if (values.length > 1 && field.repetitionType !== 'REPEATED') {
-      throw new Error('too many values for field: ' + field.name);
+      throw new Error(`too many values for field: ${field.name}`);
     }
 
     // push null

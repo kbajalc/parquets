@@ -12,7 +12,11 @@ TypeScript implementation of the [Parquet](https://parquet.apache.org/) file for
 with the [Parquet specification](https://github.com/apache/parquet-format) and is being tested
 for compatibility with Apache's Java [reference implementation](https://github.com/apache/parquet-mr).
 
-**WARNING**: *There are compatibility issues with the reference implementation when using 'optional' columns! Only GZIP and SNAPPY compressions are working properly. Testing done with [Appache Drill](https://drill.apache.org)*.
+**WARNING**: *There are compatibility issues with the reference implementation [Appache Drill](https://drill.apache.org)*:
+- only GZIP and SNAPPY compressions are compatible
+- resolved problem with columns 'optional': true and with 'compression' enabled 
+- files with 'repeated' columns can not be read with Drill
+- columns with nested 'fields' are not compatible
 
 **What is Parquet?**: Parquet is a column-oriented file format; it allows you to
 write a large amount of structured data to a file, compress it and then read parts

@@ -4,7 +4,7 @@ import fs = require('fs');
 import parquet = require('../src');
 import objectStream = require('object-stream');
 
-const TEST_NUM_ROWS = 10000;
+const TEST_NUM_ROWS = 1000;
 const TEST_VTIME = Date.now();
 
 function mkTestSchema(opts) {

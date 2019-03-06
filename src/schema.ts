@@ -136,7 +136,7 @@ function buildFields(
     /* field type */
     const typeDef: any = PARQUET_LOGICAL_TYPES[opts.type];
     if (!typeDef) {
-      throw new Error('invalid parquet type: ' + opts.type);
+      throw new Error(`invalid parquet type: ${opts.type}`);
     }
 
     /* field encoding */
@@ -145,7 +145,7 @@ function buildFields(
     }
 
     if (!(opts.encoding in PARQUET_CODEC)) {
-      throw new Error('unsupported parquet encoding: ' + opts.encoding);
+      throw new Error(`unsupported parquet encoding: ${opts.encoding}`);
     }
 
     if (!opts.compression) {
@@ -153,7 +153,7 @@ function buildFields(
     }
 
     if (!(opts.compression in PARQUET_COMPRESSION_METHODS)) {
-      throw new Error('unsupported compression method: ' + opts.compression);
+      throw new Error(`unsupported compression method: ${opts.compression}`);
     }
 
     /* add to schema */

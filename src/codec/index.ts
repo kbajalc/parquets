@@ -1,7 +1,7 @@
 import { ParquetType, TODO } from '../declare';
 
 export interface ParquetCodecImpl {
-  encodeValues(type: ParquetType, values, opts?: TODO): Buffer;
+  encodeValues(type: ParquetType, values: TODO, opts?: TODO): Buffer;
   decodeValues(type: ParquetType, cursor: TODO, count: number, opts: TODO): any[];
 }
 

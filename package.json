@@ -19,8 +19,8 @@
   "scripts": {
     "clean": "rm -rf ./lib && rm -rf ./build",
     "build": "rm -rf ./lib ; rm -rf ./build ; tsc -p src ; tsc -p .",
-    "watch": "rm -rf ./lib ; tsc -p src --watch",
-    "test": "tsc -p src && jest --verbose test/*.ts",
+    "watch": "rm -rf ./lib ; tsc -p . --watch",
+    "test": "npm run build && jest --verbose test/*.ts",
     "tsgen": "thrift-typescript --target apache --rootDir . --sourceDir . --outDir codegen parquet.thrift",
     "thrift": "thrift --gen js:node parquet.thrift && thrift --gen js:ts parquet.thrift",
     "peer": "npm i brotli lzo lz4js --no-save",
@@ -70,7 +70,7 @@
     },
     "testRegex": "(test/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
     "testPathIgnorePatterns": [
-      "<rootDir>/build"
+      "<rootDir>/build_"
     ],
     "moduleFileExtensions": [
       "ts",

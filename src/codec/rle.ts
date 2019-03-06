@@ -48,7 +48,7 @@ export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buff
       break;
 
     default:
-      throw new Error('unsupported type: ' + type);
+      throw new Error(`unsupported type: ${type}`);
   }
 
   let buf = Buffer.alloc(0);

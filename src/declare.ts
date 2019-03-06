@@ -73,6 +73,12 @@ export interface FieldDefinition {
 export interface RecordBuffer {
   rowCount?: number;
   columnData?: Record<string, ColumnData>;
+  [path: string]: {
+    dlevels: any[],
+    rlevels: any[],
+    values: any[],
+    count: number
+  } | any;
 }
 
 export interface ColumnData {

@@ -331,7 +331,7 @@ export class ParquetTransformer<T> extends Transform {
  */
 function encodeValues(type: ParquetType, encoding: ParquetCodec, values: TODO, opts: TODO) {
   if (!(encoding in PARQUET_CODEC)) {
-    throw new Error('invalid encoding: ' + encoding);
+    throw new Error(`invalid encoding: ${encoding}`);
   }
 
   return PARQUET_CODEC[encoding].encodeValues(type, values, opts);
@@ -349,18 +349,6 @@ function encodeDataPage(
   dlevels: number[],
   compression: ParquetCompression
 ): { header: PageHeader, headerSize, page: Buffer } {
-  /* encode values */
-  const valuesBuf = encodeValues(
-    column.primitiveType,
-    column.encoding,
-    values,
-    { typeLength: column.typeLength, bitWidth: column.typeLength }
-  );
-
-  // tslint:disable-next-line:no-parameter-reassignment
-  compression = column.compression === 'UNCOMPRESSED' ? (compression || 'UNCOMPRESSED') : column.compression;
-  const compressedBuf = Compression.deflate(compression, valuesBuf);
-
   /* encode repetition and definition levels */
   let rLevelsBuf = Buffer.alloc(0);
   if (column.rLevelMax > 0) {
@@ -388,6 +376,24 @@ function encodeDataPage(
     );
   }
 
+  /* encode values */
+  const valuesBuf = encodeValues(
+    column.primitiveType,
+    column.encoding,
+    values,
+    { typeLength: column.typeLength, bitWidth: column.typeLength }
+  );
+
+  const dataBuf = Buffer.concat([
+    rLevelsBuf,
+    dLevelsBuf,
+    valuesBuf
+  ]);
+
+  // tslint:disable-next-line:no-parameter-reassignment
+  compression = column.compression === 'UNCOMPRESSED' ? (compression || 'UNCOMPRESSED') : column.compression;
+  const compressedBuf = Compression.deflate(compression, dataBuf);
+
   /* build page header */
   const header = new PageHeader({
     type: PageType.DATA_PAGE,
@@ -399,16 +405,14 @@ function encodeDataPage(
       repetition_level_encoding:
         Encoding[PARQUET_RDLVL_ENCODING], // [PARQUET_RDLVL_ENCODING]
     }),
-    uncompressed_page_size: rLevelsBuf.length + dLevelsBuf.length + valuesBuf.length,
-    compressed_page_size: rLevelsBuf.length + dLevelsBuf.length + compressedBuf.length
+    uncompressed_page_size: dataBuf.length,
+    compressed_page_size: compressedBuf.length
   });
 
   /* concat page header, repetition and definition levels and values */
   const headerBuf = Util.serializeThrift(header);
   const page = Buffer.concat([
     headerBuf,
-    rLevelsBuf,
-    dLevelsBuf,
     compressedBuf
   ]);
 

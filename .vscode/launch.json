@@ -2,7 +2,7 @@
     // Use IntelliSense to learn about possible Node.js debug attributes.
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "2.0.0",
+    "version": "0.2.0",
     "configurations": [
         {
             "type": "node",
@@ -20,7 +20,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "PQT Jest",
+            "name": "PQT Jest File",
             "program": "${workspaceRoot}/jest",
             "args": [
                 "-i",
@@ -30,7 +30,7 @@
             "internalConsoleOptions": "openOnSessionStart",
             "outputCapture": "std",
             // "console": "integratedTerminal",
-            "preLaunchTask": "build",
+            "preLaunchTask": "watch",
             "sourceMaps": true,
             "outFiles": [
                 "${workspaceRoot}/build/**/*.js"
@@ -38,20 +38,10 @@
         },
         {
             "type": "node",
-            "request": "launch",
-            "name": "PQT Jest File",
-            "program": "${workspaceFolder}/node_modules/.bin/jest",
-            "args": [
-                "${relativeFile}",
-                "--config",
-                "jest.config.js"
-            ],
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "disableOptimisticBPs": true,
-            "windows": {
-                "program": "${workspaceFolder}/node_modules/jest/bin/jest",
-            }
+            "request": "attach",
+            "name": "Attach to Process",
+            "port": 5858,
+            "outFiles": []
         }
     ]
 }

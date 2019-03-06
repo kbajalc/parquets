@@ -1,3 +1,4 @@
+// tslint:disable-next-line:import-blacklist
 import { ParquetReader, ParquetSchema, ParquetWriter } from '../src';
 
 process.on('unhandledRejection', r => console.error(r));
