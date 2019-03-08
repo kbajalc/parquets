@@ -16,6 +16,10 @@
     "type": "git",
     "url": "git://github.com/kbajalc/parquets.git"
   },
+  "files": [
+    "lib",
+    "src"
+  ],
   "scripts": {
     "clean": "rm -rf ./lib && rm -rf ./build",
     "build": "rm -rf ./lib ; rm -rf ./build ; tsc -p src ; tsc -p .",
@@ -24,8 +28,7 @@
     "tsgen": "thrift-typescript --target apache --rootDir . --sourceDir . --outDir codegen parquet.thrift",
     "thrift": "thrift --gen js:node parquet.thrift && thrift --gen js:ts parquet.thrift",
     "peer": "npm i brotli lzo lz4js --no-save",
-    "drill": "../../tools/apache-drill-1.15.0/bin/drill-embedded",
-    "sql": "echo SELECT CONVERT_FROM(timestamp_field, 'TIMESTAMP_IMPALA') as timestamp_field FROM `dfs.file_with_timestamp.parquet`"
+    "release": "npm run build && git push --follow-tags && npm publish"
   },
   "engines": {
     "node": ">=7.6"
@@ -49,15 +52,15 @@
     "@types/bson": "^1.0.11",
     "@types/debug": "0.0.30",
     "@types/jest": "^22.2.3",
-    "@types/node": "^10.12.29",
+    "@types/node": "^10.12.30",
     "brotli": "^1.3.0",
     "chai": "^4.2.0",
-    "jest": "^24.0.0",
-    "jest-environment-node": "^24.0.0",
+    "jest": "^24.3.1",
+    "jest-environment-node": "^24.3.1",
     "lz4js": "^0.2.0",
     "lzo": "^0.4.10",
     "ts-jest": "^24.0.0",
-    "ts-node": "^8.0.2",
+    "ts-node": "^8.0.3",
     "tslint": "^5.13.1",
     "tslint-config-airbnb": "^5.11.1",
     "typescript": "^3.3.3333"
