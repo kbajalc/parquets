@@ -376,14 +376,14 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
   // Fs.writeFileSync(`dump/${info.path}.ts.json`, JSON.stringify(info, null, 2));
 
   /* uncompress page */
-  let uncursor = cursor;
+  let dataCursor = cursor;
   if (opts.compression !== 'UNCOMPRESSED') {
     const valuesBuf = Compression.inflate(
       opts.compression,
       cursor.buffer.slice(cursor.offset, cursorEnd),
       header.uncompressed_page_size
     );
-    uncursor = {
+    dataCursor = {
       buffer: valuesBuf,
       offset: 0,
       size: valuesBuf.length
@@ -402,7 +402,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
     rLevels = decodeValues(
       PARQUET_RDLVL_TYPE,
       rLevelEncoding,
-      uncursor,
+      dataCursor,
       valueCount,
       {
         bitWidth: Util.getBitWidth(opts.rLevelMax),
@@ -425,7 +425,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
     dLevels = decodeValues(
       PARQUET_RDLVL_TYPE,
       dLevelEncoding,
-      uncursor,
+      dataCursor,
       valueCount,
       {
         bitWidth: Util.getBitWidth(opts.dLevelMax),
@@ -451,7 +451,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
   const values = decodeValues(
     opts.type,
     valueEncoding,
-    uncursor,
+    dataCursor,
     valueCountNonNull,
     {
       typeLength: opts.column.typeLength,
