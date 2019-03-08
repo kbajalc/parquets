@@ -29,6 +29,7 @@
     "tsgen": "thrift-typescript --target apache --rootDir . --sourceDir . --outDir codegen parquet.thrift",
     "thrift": "thrift --gen js:node parquet.thrift && thrift --gen js:ts parquet.thrift",
     "peer": "npm i brotli lzo lz4js --no-save",
+    "upver": "npm version patch && git push --follow-tags",
     "release": "npm run build && git push --follow-tags && npm publish"
   },
   "engines": {
