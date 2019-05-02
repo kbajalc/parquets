@@ -60,12 +60,12 @@ function deflate_snappy(value: Buffer): Buffer {
 }
 
 function deflate_lzo(value: Buffer): Buffer {
-  lzo = lzo || require('lzo');
+  lzo = lzo || (module || global)['require']('lzo');
   return lzo.compress(value);
 }
 
 function deflate_brotli(value: Buffer): Buffer {
-  brotli = brotli || require('brotli');
+  brotli = brotli || (module || global)['require']('brotli');
   const result = brotli.compress(value, {
     mode: 0,
     quality: 8,
@@ -75,7 +75,7 @@ function deflate_brotli(value: Buffer): Buffer {
 }
 
 function deflate_lz4(value: Buffer): Buffer {
-  lz4js = lz4js || require('lz4js');
+  lz4js = lz4js || (module || global)['require']('lz4js');
   try {
     // let result = Buffer.alloc(lz4js.encodeBound(value.length));
     // const compressedSize = lz4.encodeBlock(value, result);
@@ -112,12 +112,12 @@ function inflate_snappy(value: Buffer): Buffer {
 }
 
 function inflate_lzo(value: Buffer, size: number): Buffer {
-  lzo = lzo || require('lzo');
+  lzo = lzo || (module || global)['require']('lzo');
   return lzo.decompress(value, size);
 }
 
 function inflate_lz4(value: Buffer, size: number): Buffer {
-  lz4js = lz4js || require('lz4js');
+  lz4js = lz4js || (module || global)['require']('lz4js');
   try {
     // let result = Buffer.alloc(size);
     // const uncompressedSize = lz4js.decodeBlock(value, result);
@@ -131,7 +131,7 @@ function inflate_lz4(value: Buffer, size: number): Buffer {
 }
 
 function inflate_brotli(value: Buffer): Buffer {
-  brotli = brotli || require('brotli');
+  brotli = brotli || (module || global)['require']('brotli');
   if (!value.length) {
     return Buffer.alloc(0);
   }
