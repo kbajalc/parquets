@@ -2,7 +2,7 @@ import { PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
 import { ColumnData, CursorBuffer, ParquetCodec, ParquetType, RecordBuffer, SchemaDefinition, TODO } from './declare';
 // tslint:disable-next-line:max-line-length
-import { ColumnChunk, CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageHeader, PageType, RowGroup, Type } from './gen/parquet_types';
+import { ColumnChunk, CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageHeader, PageType, RowGroup, SchemaElement, Type } from './gen/parquet_types';
 import { ParquetSchema } from './schema';
 import * as Shred from './shred';
 import * as Util from './util';
@@ -125,7 +125,7 @@ export class ParquetReader<T> {
 
     this.metadata = metadata;
     this.envelopeReader = envelopeReader;
-    this.schema = new ParquetSchema(decodeSchema(this.metadata.schema.splice(1)));
+    this.schema = new ParquetSchema(decodeSchema(this.metadata.schema, 1, this.metadata.schema.length - 1));
   }
 
   /**
@@ -553,9 +553,9 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, opts: TODO):
   };
 }
 
-function decodeSchema(schemaElements: TODO[]): SchemaDefinition {
+function decodeSchema(schemaElements: SchemaElement[], from: number, len: number): SchemaDefinition {
   const schema: SchemaDefinition = {};
-  for (let idx = 0; idx < schemaElements.length;) {
+  for (let idx = from; idx < from + len;) {
     const schemaElement = schemaElements[idx];
 
     const repetitionType = Util.getThriftEnum(
@@ -580,8 +580,7 @@ function decodeSchema(schemaElements: TODO[]): SchemaDefinition {
         // type: undefined,
         optional,
         repeated,
-        fields: decodeSchema(
-          schemaElements.slice(idx + 1, idx + 1 + schemaElement.num_children))
+        fields: decodeSchema(schemaElements, idx + 1, schemaElement.num_children)
       };
     } else {
       let logicalType = Util.getThriftEnum(
