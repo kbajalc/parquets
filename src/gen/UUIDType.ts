@@ -8,31 +8,31 @@ import * as thrift from "thrift";
 export interface IUUIDTypeArgs {
 }
 export class UUIDType {
-    constructor() {
-    }
-    public write(output: thrift.TProtocol): void {
-        output.writeStructBegin("UUIDType");
-        output.writeFieldStop();
-        output.writeStructEnd();
-        return;
-    }
-    public static read(input: thrift.TProtocol): UUIDType {
-        input.readStructBegin();
-        while (true) {
-            const ret: thrift.TField = input.readFieldBegin();
-            const fieldType: thrift.Thrift.Type = ret.ftype;
-            const fieldId: number = ret.fid;
-            if (fieldType === thrift.Thrift.Type.STOP) {
-                break;
-            }
-            switch (fieldId) {
-                default: {
-                    input.skip(fieldType);
-                }
-            }
-            input.readFieldEnd();
+  constructor() {
+  }
+  public write(output: thrift.TProtocol): void {
+    output.writeStructBegin("UUIDType");
+    output.writeFieldStop();
+    output.writeStructEnd();
+    return;
+  }
+  public static read(input: thrift.TProtocol): UUIDType {
+    input.readStructBegin();
+    while (true) {
+      const ret: thrift.TField = input.readFieldBegin();
+      const fieldType: thrift.Thrift.Type = ret.ftype;
+      const fieldId: number = ret.fid;
+      if (fieldType === thrift.Thrift.Type.STOP) {
+        break;
+      }
+      switch (fieldId) {
+        default: {
+          input.skip(fieldType);
         }
-        input.readStructEnd();
-        return new UUIDType();
+      }
+      input.readFieldEnd();
     }
+    input.readStructEnd();
+    return new UUIDType();
+  }
 }

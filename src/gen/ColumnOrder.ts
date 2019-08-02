@@ -7,79 +7,79 @@
 import * as thrift from "thrift";
 import * as TypeDefinedOrder from "./TypeDefinedOrder";
 export interface IColumnOrderArgs {
-    TYPE_ORDER?: TypeDefinedOrder.TypeDefinedOrder;
+  TYPE_ORDER?: TypeDefinedOrder.TypeDefinedOrder;
 }
 export class ColumnOrder {
-    public TYPE_ORDER?: TypeDefinedOrder.TypeDefinedOrder;
-    constructor(args?: IColumnOrderArgs) {
-        let _fieldsSet: number = 0;
-        if (args != null) {
-            if (args.TYPE_ORDER != null) {
-                _fieldsSet++;
-                this.TYPE_ORDER = args.TYPE_ORDER;
-            }
-            if (_fieldsSet > 1) {
-                throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.INVALID_DATA, "Cannot read a TUnion with more than one set value!");
-            }
-            else if (_fieldsSet < 1) {
-                throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.INVALID_DATA, "Cannot read a TUnion with no set value!");
-            }
-        }
+  public TYPE_ORDER?: TypeDefinedOrder.TypeDefinedOrder;
+  constructor(args?: IColumnOrderArgs) {
+    let _fieldsSet: number = 0;
+    if (args != null) {
+      if (args.TYPE_ORDER != null) {
+        _fieldsSet++;
+        this.TYPE_ORDER = args.TYPE_ORDER;
+      }
+      if (_fieldsSet > 1) {
+        throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.INVALID_DATA, "Cannot read a TUnion with more than one set value!");
+      }
+      else if (_fieldsSet < 1) {
+        throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.INVALID_DATA, "Cannot read a TUnion with no set value!");
+      }
     }
-    public static fromTYPE_ORDER(TYPE_ORDER: TypeDefinedOrder.TypeDefinedOrder): ColumnOrder {
-        return new ColumnOrder({ TYPE_ORDER });
+  }
+  public static fromTYPE_ORDER(TYPE_ORDER: TypeDefinedOrder.TypeDefinedOrder): ColumnOrder {
+    return new ColumnOrder({ TYPE_ORDER });
+  }
+  public write(output: thrift.TProtocol): void {
+    output.writeStructBegin("ColumnOrder");
+    if (this.TYPE_ORDER != null) {
+      output.writeFieldBegin("TYPE_ORDER", thrift.Thrift.Type.STRUCT, 1);
+      this.TYPE_ORDER.write(output);
+      output.writeFieldEnd();
     }
-    public write(output: thrift.TProtocol): void {
-        output.writeStructBegin("ColumnOrder");
-        if (this.TYPE_ORDER != null) {
-            output.writeFieldBegin("TYPE_ORDER", thrift.Thrift.Type.STRUCT, 1);
-            this.TYPE_ORDER.write(output);
-            output.writeFieldEnd();
+    output.writeFieldStop();
+    output.writeStructEnd();
+    return;
+  }
+  public static read(input: thrift.TProtocol): ColumnOrder {
+    let _fieldsSet: number = 0;
+    let _returnValue: ColumnOrder | null = null;
+    input.readStructBegin();
+    while (true) {
+      const ret: thrift.TField = input.readFieldBegin();
+      const fieldType: thrift.Thrift.Type = ret.ftype;
+      const fieldId: number = ret.fid;
+      if (fieldType === thrift.Thrift.Type.STOP) {
+        break;
+      }
+      switch (fieldId) {
+        case 1:
+          if (fieldType === thrift.Thrift.Type.STRUCT) {
+            _fieldsSet++;
+            const value_1: TypeDefinedOrder.TypeDefinedOrder = TypeDefinedOrder.TypeDefinedOrder.read(input);
+            _returnValue = ColumnOrder.fromTYPE_ORDER(value_1);
+          }
+          else {
+            input.skip(fieldType);
+          }
+          break;
+        default: {
+          input.skip(fieldType);
         }
-        output.writeFieldStop();
-        output.writeStructEnd();
-        return;
+      }
+      input.readFieldEnd();
     }
-    public static read(input: thrift.TProtocol): ColumnOrder {
-        let _fieldsSet: number = 0;
-        let _returnValue: ColumnOrder | null = null;
-        input.readStructBegin();
-        while (true) {
-            const ret: thrift.TField = input.readFieldBegin();
-            const fieldType: thrift.Thrift.Type = ret.ftype;
-            const fieldId: number = ret.fid;
-            if (fieldType === thrift.Thrift.Type.STOP) {
-                break;
-            }
-            switch (fieldId) {
-                case 1:
-                    if (fieldType === thrift.Thrift.Type.STRUCT) {
-                        _fieldsSet++;
-                        const value_1: TypeDefinedOrder.TypeDefinedOrder = TypeDefinedOrder.TypeDefinedOrder.read(input);
-                        _returnValue = ColumnOrder.fromTYPE_ORDER(value_1);
-                    }
-                    else {
-                        input.skip(fieldType);
-                    }
-                    break;
-                default: {
-                    input.skip(fieldType);
-                }
-            }
-            input.readFieldEnd();
-        }
-        input.readStructEnd();
-        if (_fieldsSet > 1) {
-            throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.INVALID_DATA, "Cannot read a TUnion with more than one set value!");
-        }
-        else if (_fieldsSet < 1) {
-            throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.INVALID_DATA, "Cannot read a TUnion with no set value!");
-        }
-        if (_returnValue !== null) {
-            return _returnValue;
-        }
-        else {
-            throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.UNKNOWN, "Unable to read data for TUnion");
-        }
+    input.readStructEnd();
+    if (_fieldsSet > 1) {
+      throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.INVALID_DATA, "Cannot read a TUnion with more than one set value!");
     }
+    else if (_fieldsSet < 1) {
+      throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.INVALID_DATA, "Cannot read a TUnion with no set value!");
+    }
+    if (_returnValue !== null) {
+      return _returnValue;
+    }
+    else {
+      throw new thrift.Thrift.TProtocolException(thrift.Thrift.TProtocolExceptionType.UNKNOWN, "Unable to read data for TUnion");
+    }
+  }
 }

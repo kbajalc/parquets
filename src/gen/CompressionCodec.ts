@@ -5,11 +5,11 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
 */
 export enum CompressionCodec {
-    UNCOMPRESSED = 0,
-    SNAPPY = 1,
-    GZIP = 2,
-    LZO = 3,
-    BROTLI = 4,
-    LZ4 = 5,
-    ZSTD = 6
+  UNCOMPRESSED = 0,
+  SNAPPY = 1,
+  GZIP = 2,
+  LZO = 3,
+  BROTLI = 4,
+  LZ4 = 5,
+  ZSTD = 6
 }

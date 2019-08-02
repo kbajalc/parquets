@@ -8,31 +8,31 @@ import * as thrift from "thrift";
 export interface IMicroSecondsArgs {
 }
 export class MicroSeconds {
-    constructor() {
-    }
-    public write(output: thrift.TProtocol): void {
-        output.writeStructBegin("MicroSeconds");
-        output.writeFieldStop();
-        output.writeStructEnd();
-        return;
-    }
-    public static read(input: thrift.TProtocol): MicroSeconds {
-        input.readStructBegin();
-        while (true) {
-            const ret: thrift.TField = input.readFieldBegin();
-            const fieldType: thrift.Thrift.Type = ret.ftype;
-            const fieldId: number = ret.fid;
-            if (fieldType === thrift.Thrift.Type.STOP) {
-                break;
-            }
-            switch (fieldId) {
-                default: {
-                    input.skip(fieldType);
-                }
-            }
-            input.readFieldEnd();
+  constructor() {
+  }
+  public write(output: thrift.TProtocol): void {
+    output.writeStructBegin("MicroSeconds");
+    output.writeFieldStop();
+    output.writeStructEnd();
+    return;
+  }
+  public static read(input: thrift.TProtocol): MicroSeconds {
+    input.readStructBegin();
+    while (true) {
+      const ret: thrift.TField = input.readFieldBegin();
+      const fieldType: thrift.Thrift.Type = ret.ftype;
+      const fieldId: number = ret.fid;
+      if (fieldType === thrift.Thrift.Type.STOP) {
+        break;
+      }
+      switch (fieldId) {
+        default: {
+          input.skip(fieldType);
         }
-        input.readStructEnd();
-        return new MicroSeconds();
+      }
+      input.readFieldEnd();
     }
+    input.readStructEnd();
+    return new MicroSeconds();
+  }
 }

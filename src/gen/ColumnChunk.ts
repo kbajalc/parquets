@@ -6,22 +6,23 @@
 */
 import * as thrift from "thrift";
 import * as ColumnMetaData from "./ColumnMetaData";
+import Int64 = require("node-int64");
 export interface IColumnChunkArgs {
   file_path?: string;
-  file_offset: number | thrift.Int64;
+  file_offset: number | Int64;
   meta_data?: ColumnMetaData.ColumnMetaData;
-  offset_index_offset?: number | thrift.Int64;
+  offset_index_offset?: number | Int64;
   offset_index_length?: number;
-  column_index_offset?: number | thrift.Int64;
+  column_index_offset?: number | Int64;
   column_index_length?: number;
 }
 export class ColumnChunk {
   public file_path?: string;
-  public file_offset: thrift.Int64;
+  public file_offset: Int64;
   public meta_data?: ColumnMetaData.ColumnMetaData;
-  public offset_index_offset?: thrift.Int64;
+  public offset_index_offset?: Int64;
   public offset_index_length?: number;
-  public column_index_offset?: thrift.Int64;
+  public column_index_offset?: Int64;
   public column_index_length?: number;
   constructor(args: IColumnChunkArgs) {
     if (args != null && args.file_path != null) {
@@ -29,7 +30,7 @@ export class ColumnChunk {
     }
     if (args != null && args.file_offset != null) {
       if (typeof args.file_offset === "number") {
-        this.file_offset = new thrift.Int64(args.file_offset);
+        this.file_offset = new Int64(args.file_offset);
       }
       else {
         this.file_offset = args.file_offset;
@@ -43,7 +44,7 @@ export class ColumnChunk {
     }
     if (args != null && args.offset_index_offset != null) {
       if (typeof args.offset_index_offset === "number") {
-        this.offset_index_offset = new thrift.Int64(args.offset_index_offset);
+        this.offset_index_offset = new Int64(args.offset_index_offset);
       }
       else {
         this.offset_index_offset = args.offset_index_offset;
@@ -54,7 +55,7 @@ export class ColumnChunk {
     }
     if (args != null && args.column_index_offset != null) {
       if (typeof args.column_index_offset === "number") {
-        this.column_index_offset = new thrift.Int64(args.column_index_offset);
+        this.column_index_offset = new Int64(args.column_index_offset);
       }
       else {
         this.column_index_offset = args.column_index_offset;
@@ -127,7 +128,7 @@ export class ColumnChunk {
           break;
         case 2:
           if (fieldType === thrift.Thrift.Type.I64) {
-            const value_2: thrift.Int64 = input.readI64();
+            const value_2: Int64 = input.readI64();
             _args.file_offset = value_2;
           }
           else {
@@ -145,7 +146,7 @@ export class ColumnChunk {
           break;
         case 4:
           if (fieldType === thrift.Thrift.Type.I64) {
-            const value_4: thrift.Int64 = input.readI64();
+            const value_4: Int64 = input.readI64();
             _args.offset_index_offset = value_4;
           }
           else {
@@ -163,7 +164,7 @@ export class ColumnChunk {
           break;
         case 6:
           if (fieldType === thrift.Thrift.Type.I64) {
-            const value_6: thrift.Int64 = input.readI64();
+            const value_6: Int64 = input.readI64();
             _args.column_index_offset = value_6;
           }
           else {
