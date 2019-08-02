@@ -1,7 +1,7 @@
 import fs = require('fs');
 import { TBufferedTransport, TCompactProtocol, TFramedTransport } from 'thrift';
 import { TODO } from './declare';
-import { FileMetaData, PageHeader } from './gen/parquet_types';
+import { FileMetaData, PageHeader } from './gen';
 
 export interface WriteStreamOptions {
   flags?: string;

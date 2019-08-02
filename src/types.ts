@@ -1,6 +1,8 @@
 import { BSON } from 'bson';
 import { ParquetType, TypeDef } from './declare';
 
+// tslint:disable: prefer-template
+
 export const PARQUET_LOGICAL_TYPES: Record<string, TypeDef> = {
   BOOLEAN: {
     primitiveType: 'BOOLEAN',

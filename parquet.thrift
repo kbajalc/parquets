@@ -21,7 +21,7 @@
  * File format description for the parquet file format
  */
 namespace cpp parquet
-namespace java org.apache.parquet.format
+namespace java parquet
 
 /**
  * Types supported by Parquet.  These types are intended to be used in combination

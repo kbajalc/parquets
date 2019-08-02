@@ -4,7 +4,7 @@ import { PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
 import { ParquetCodec, ParquetCompression, ParquetRow, ParquetRowGroup, ParquetType, RecordBuffer, TODO } from './declare';
 // tslint:disable-next-line:max-line-length
-import { ColumnChunk, ColumnMetaData, CompressionCodec, ConvertedType, DataPageHeader, DataPageHeaderV2, Encoding, FieldRepetitionType, FileMetaData, KeyValue, PageHeader, PageType, RowGroup, SchemaElement, Type } from './gen/parquet_types';
+import { ColumnChunk, ColumnMetaData, CompressionCodec, ConvertedType, DataPageHeader, DataPageHeaderV2, Encoding, FieldRepetitionType, FileMetaData, KeyValue, PageHeader, PageType, RowGroup, SchemaElement, Type } from './gen';
 import { ParquetSchema } from './schema';
 import * as Shred from './shred';
 import * as Util from './util';

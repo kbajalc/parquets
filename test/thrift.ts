@@ -2,7 +2,7 @@
 
 import chai = require('chai');
 const assert = chai.assert;
-import parquet_thrift = require('../src/gen/parquet_types');
+import parquet_thrift = require('../src/gen');
 import parquet_util = require('../src/util');
 
 // tslint:disable:ter-prefer-arrow-callback

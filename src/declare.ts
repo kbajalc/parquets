@@ -1,4 +1,4 @@
-import { RowGroup } from './gen/parquet_types';
+import { RowGroup } from './gen';
 
 export type TODO = any;
 
