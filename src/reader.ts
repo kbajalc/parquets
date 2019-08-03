@@ -55,7 +55,7 @@ export class ParquetCursor<T> {
    * Retrieve the next row from the cursor. Returns a row or NULL if the end
    * of the file was reached
    */
-  async next(): Promise<T> {
+  async next<T = any>(): Promise<T> {
     if (this.rowGroup.length === 0) {
       if (this.rowGroupIndex >= this.metadata.row_groups.length) {
         return null;
@@ -64,7 +64,8 @@ export class ParquetCursor<T> {
       const rowBuffer = await this.envelopeReader.readRowGroup(
         this.schema,
         this.metadata.row_groups[this.rowGroupIndex],
-        this.columnList);
+        this.columnList
+      );
 
       this.rowGroup = Shred.materializeRecords(this.schema, rowBuffer);
       this.rowGroupIndex++;
@@ -125,7 +126,9 @@ export class ParquetReader<T> {
 
     this.metadata = metadata;
     this.envelopeReader = envelopeReader;
-    this.schema = new ParquetSchema(decodeSchema(this.metadata.schema, 1, this.metadata.schema.length - 1));
+    const root = this.metadata.schema[0];
+    const { schema } = decodeSchema(this.metadata.schema, 1, root.num_children);
+    this.schema = new ParquetSchema(schema);
   }
 
   /**
@@ -228,23 +231,19 @@ export class ParquetEnvelopeReader {
     }
   }
 
-  async readRowGroup(schema: ParquetSchema, rowGroup: RowGroup, columnList: TODO[]): Promise<RecordBuffer> {
+  async readRowGroup(schema: ParquetSchema, rowGroup: RowGroup, columnList: string[][]): Promise<RecordBuffer> {
     const buffer: RecordBuffer = {
       rowCount: +rowGroup.num_rows,
       columnData: {}
     };
-
     for (const colChunk of rowGroup.columns) {
       const colMetadata = colChunk.meta_data;
       const colKey = colMetadata.path_in_schema;
-
       if (columnList.length > 0 && Util.fieldIndexOf(columnList, colKey) < 0) {
         continue;
       }
-
       buffer.columnData[colKey as any] = await this.readColumnChunk(schema, colChunk);
     }
-
     return buffer;
   }
 
@@ -553,14 +552,20 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, opts: TODO):
   };
 }
 
-function decodeSchema(schemaElements: SchemaElement[], from: number, len: number): SchemaDefinition {
+function decodeSchema(schemaElements: SchemaElement[], offset: number, len: number): {
+  offset: number;
+  next: number;
+  schema: SchemaDefinition;
+} {
   const schema: SchemaDefinition = {};
-  for (let idx = from; idx < from + len;) {
-    const schemaElement = schemaElements[idx];
+  let next = offset;
+  for (let i = 0; i < len; i++) {
+    const schemaElement = schemaElements[next];
 
-    const repetitionType = Util.getThriftEnum(
+    const repetitionType = next > 0 ? Util.getThriftEnum(
       FieldRepetitionType,
-      schemaElement.repetition_type);
+      schemaElement.repetition_type
+    ) : 'ROOT';
 
     let optional = false;
     let repeated = false;
@@ -576,11 +581,17 @@ function decodeSchema(schemaElements: SchemaElement[], from: number, len: number
     }
 
     if (schemaElement.num_children > 0) {
+      const res = decodeSchema(
+        schemaElements,
+        next + 1,
+        schemaElement.num_children
+      );
+      next = res.next;
       schema[schemaElement.name] = {
         // type: undefined,
         optional,
         repeated,
-        fields: decodeSchema(schemaElements, idx + 1, schemaElement.num_children)
+        fields: res.schema
       };
     } else {
       let logicalType = Util.getThriftEnum(
@@ -599,10 +610,8 @@ function decodeSchema(schemaElements: SchemaElement[], from: number, len: number
         optional,
         repeated
       };
+      next++;
     }
-
-    idx += (schemaElement.num_children || 0) + 1;
   }
-
-  return schema;
+  return { schema, offset, next };
 }
