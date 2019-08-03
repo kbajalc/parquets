@@ -1,4 +1,4 @@
-import { BSON } from 'bson';
+import BSON = require("bson");
 import { ParquetType, TypeDef } from './declare';
 
 export const PARQUET_LOGICAL_TYPES: Record<string, TypeDef> = {
@@ -287,13 +287,11 @@ function fromPrimitive_JSON(value: any) {
 }
 
 function toPrimitive_BSON(value: any) {
-  const encoder = new BSON();
-  return Buffer.from(encoder.serialize(value));
+  return Buffer.from(BSON.serialize(value));
 }
 
 function fromPrimitive_BSON(value: any) {
-  const decoder = new BSON();
-  return decoder.deserialize(value);
+  return BSON.deserialize(value);
 }
 
 function toPrimitive_TIME_MILLIS(value: any) {
