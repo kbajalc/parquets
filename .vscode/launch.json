@@ -20,6 +20,19 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "PQT Demo",
+            "program": "${workspaceRoot}/dev/demo.ts",
+            "cwd": "${workspaceRoot}",
+            "sourceMaps": true,
+            "preLaunchTask": "watch",
+            "showAsyncStacks": true,
+            "outFiles": [
+                "${workspaceRoot}/build/**/*.js"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "PQT Jest File",
             "program": "${workspaceRoot}/jest",
             "args": [

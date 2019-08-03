@@ -1,4 +1,4 @@
-import { ColumnData, FieldDefinition, ParquetRow, RecordBuffer, TODO } from './declare';
+import { ColumnData, FieldDefinition, ParquetRow, RecordBuffer } from './declare';
 import { ParquetSchema } from './schema';
 import * as Types from './types';
 
@@ -156,8 +156,8 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Pa
  *   }
  *
  */
-export function materializeRecords(schema: ParquetSchema, buffer: RecordBuffer) {
-  const records: TODO[] = [];
+export function materializeRecords(schema: ParquetSchema, buffer: RecordBuffer): any[] {
+  const records: any[] = [];
   for (let i = 0; i < buffer.rowCount; ++i) {
     records.push({});
   }
@@ -197,7 +197,7 @@ export function materializeRecords(schema: ParquetSchema, buffer: RecordBuffer) 
   return records;
 }
 
-function materializeRecordField(record: TODO, branch: TODO, rLevels: number[], dLevel: number, value: any): void {
+function materializeRecordField(record: any, branch: FieldDefinition[], rLevels: number[], dLevel: number, value: any): void {
   const node = branch[0];
 
   if (dLevel < node.dLevelMax) {

@@ -34,8 +34,22 @@ async function example() {
         loc: {
           optional: true,
           fields: {
+            tags: {
+              optional: true,
+              fields: {
+                val: { type: 'UTF8' },
+                xyz: { type: 'INT32' }
+              }
+            },
             lon: { type: 'FLOAT' },
-            lat: { type: 'FLOAT' }
+            lat: { type: 'FLOAT' },
+            zags: {
+              optional: true,
+              fields: {
+                zal: { type: 'UTF8' },
+                zyx: { type: 'INT32' }
+              }
+            },
           }
         }
       }
@@ -57,7 +71,7 @@ async function example() {
 
   const reader = await ParquetReader.openFile('fruits.parquet');
   console.log(reader.getSchema());
-  const cursor = reader.getCursor();
+  const cursor = reader.getCursor(['name', ['stock', 'loc', '#']]);
   let record = null;
   while (record = await cursor.next()) {
     console.log(record);
@@ -80,7 +94,7 @@ function mkTestRows(opts?: any) {
       inter: { months: 42, days: 23, milliseconds: 777 },
       stock: [
         { quantity: 10, warehouse: 'A' },
-        { quantity: 20, warehouse: 'B', loc: { lon: 6, lat: 9 } }
+        { quantity: 20, warehouse: 'B', loc: { lon: 6, lat: 9, tags: { val: 'abc', xyz: 77 } } }
       ],
       colour: ['green', 'red', 'blue'],
       compression: opts && opts.compression

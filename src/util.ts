@@ -182,24 +182,20 @@ export function osopen(path: string, opts: WriteStreamOptions): Promise<fs.Write
   });
 }
 
-export function fieldIndexOf(arr: any[][], elem: any[]): number {
+// Supports MQTT path wildcards
+// + all immediate children
+// # all descendents
+export function fieldIndexOf(arr: string[][], elem: string[]): number {
   for (let j = 0; j < arr.length; ++j) {
-    if (arr[j].length !== elem.length) {
-      continue;
-    }
-
+    if (arr[j].length > elem.length) continue;
     let m = true;
     for (let i = 0; i < elem.length; ++i) {
-      if (arr[j][i] !== elem[i]) {
-        m = false;
-        break;
-      }
+      if (arr[j][i] === elem[i] || arr[j][i] === '+' || arr[j][i] === '#') continue;
+      if (i >= arr[j].length && arr[j][arr[j].length - 1] === '#') continue;
+      m = false;
+      break;
     }
-
-    if (m) {
-      return j;
-    }
+    if (m) return j;
   }
-
   return -1;
 }
