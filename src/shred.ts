@@ -1,4 +1,4 @@
-import { ColumnData, FieldDefinition, ParquetRow, RecordBuffer } from './declare';
+import { FieldDefinition, ParquetBuffer, ParquetData, ParquetRecord } from './declare';
 import { ParquetSchema } from './schema';
 import * as Types from './types';
 
@@ -25,11 +25,11 @@ import * as Types from './types';
  *   }
  *
  */
-export function shredRecord(schema: ParquetSchema, record: ParquetRow, buffer: RecordBuffer): void {
+export function shredRecord(schema: ParquetSchema, record: any, buffer: ParquetBuffer): void {
   /* shred the record, this may raise an exception */
-  const recordShredded: RecordBuffer = {};
+  const recordShredded: Record<string, ParquetData> = {};
   for (const field of schema.fieldList) {
-    recordShredded[field.path as any] = {
+    recordShredded[field.path.join()] = {
       dlevels: [],
       rlevels: [],
       values: [],
@@ -45,35 +45,41 @@ export function shredRecord(schema: ParquetSchema, record: ParquetRow, buffer: R
     buffer.columnData = {};
 
     for (const field of schema.fieldList) {
-      const cd: ColumnData = {
+      const cd: ParquetData = {
         dlevels: [],
         rlevels: [],
         values: [],
         count: 0
       };
-      buffer.columnData[field.path as any] = cd;
+      buffer.columnData[field.path.join()] = cd;
     }
   }
 
   buffer.rowCount += 1;
   for (const field of schema.fieldList) {
     Array.prototype.push.apply(
-      buffer.columnData[field.path as any].rlevels,
-      recordShredded[field.path as any].rlevels);
+      buffer.columnData[field.path.join()].rlevels,
+      recordShredded[field.path.join()].rlevels);
 
     Array.prototype.push.apply(
-      buffer.columnData[field.path as any].dlevels,
-      recordShredded[field.path as any].dlevels);
+      buffer.columnData[field.path.join()].dlevels,
+      recordShredded[field.path.join()].dlevels);
 
     Array.prototype.push.apply(
-      buffer.columnData[field.path as any].values,
-      recordShredded[field.path as any].values);
+      buffer.columnData[field.path.join()].values,
+      recordShredded[field.path.join()].values);
 
-    buffer.columnData[field.path as any].count += recordShredded[field.path as any].count;
+    buffer.columnData[field.path.join()].count += recordShredded[field.path.join()].count;
   }
 }
 
-function shredRecordInternal(fields: Record<string, FieldDefinition>, record: ParquetRow, data: RecordBuffer, rlvl: number, dlvl: number) {
+function shredRecordInternal(
+  fields: Record<string, FieldDefinition>,
+  record: any,
+  data: Record<string, ParquetData>,
+  rlvl: number,
+  dlvl: number
+) {
   for (const fieldName in fields) {
     const field = fields[fieldName];
     const fieldType = field.originalType || field.primitiveType;
@@ -107,9 +113,9 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Pa
           rlvl,
           dlvl);
       } else {
-        data[field.path as any].rlevels.push(rlvl);
-        data[field.path as any].dlevels.push(dlvl);
-        data[field.path as any].count += 1;
+        data[field.path.join()].rlevels.push(rlvl);
+        data[field.path.join()].dlevels.push(dlvl);
+        data[field.path.join()].count += 1;
       }
       continue;
     }
@@ -127,10 +133,10 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Pa
           rlvl_i,
           field.dLevelMax);
       } else {
-        data[field.path as any].values.push(Types.toPrimitive(fieldType, values[i]));
-        data[field.path as any].rlevels.push(rlvl_i);
-        data[field.path as any].dlevels.push(field.dLevelMax);
-        data[field.path as any].count += 1;
+        data[field.path.join()].values.push(Types.toPrimitive(fieldType, values[i]));
+        data[field.path.join()].rlevels.push(rlvl_i);
+        data[field.path.join()].dlevels.push(field.dLevelMax);
+        data[field.path.join()].count += 1;
       }
     }
   }
@@ -156,8 +162,8 @@ function shredRecordInternal(fields: Record<string, FieldDefinition>, record: Pa
  *   }
  *
  */
-export function materializeRecords(schema: ParquetSchema, buffer: RecordBuffer): any[] {
-  const records: any[] = [];
+export function materializeRecords(schema: ParquetSchema, buffer: ParquetBuffer): ParquetRecord[] {
+  const records: ParquetRecord[] = [];
   for (let i = 0; i < buffer.rowCount; ++i) {
     records.push({});
   }

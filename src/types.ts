@@ -1,9 +1,15 @@
-import { BSON } from 'bson';
-import { ParquetType, TypeDef } from './declare';
+import BSON = require('bson');
+import { OriginalType, ParquetType, PrimitiveType } from './declare';
 
-// tslint:disable: prefer-template
+export interface ParquetTypeKit {
+  primitiveType: PrimitiveType;
+  originalType?: OriginalType;
+  typeLength?: number;
+  toPrimitive: Function;
+  fromPrimitive?: Function;
+}
 
-export const PARQUET_LOGICAL_TYPES: Record<string, TypeDef> = {
+export const PARQUET_LOGICAL_TYPES: Record<ParquetType, ParquetTypeKit> = {
   BOOLEAN: {
     primitiveType: 'BOOLEAN',
     toPrimitive: toPrimitive_BOOLEAN,
@@ -289,13 +295,11 @@ function fromPrimitive_JSON(value: any) {
 }
 
 function toPrimitive_BSON(value: any) {
-  const encoder = new BSON();
-  return Buffer.from(encoder.serialize(value));
+  return Buffer.from(BSON.serialize(value));
 }
 
 function fromPrimitive_BSON(value: any) {
-  const decoder = new BSON();
-  return decoder.deserialize(value);
+  return BSON.deserialize(value);
 }
 
 function toPrimitive_TIME_MILLIS(value: any) {

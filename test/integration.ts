@@ -1,13 +1,20 @@
+import 'jest';
+import { ParquetCompression } from '../src';
 import chai = require('chai');
-const assert = chai.assert;
 import fs = require('fs');
 import parquet = require('../src');
-import objectStream = require('object-stream');
+const assert = chai.assert;
+const objectStream = require('object-stream');
 
 const TEST_NUM_ROWS = 1000;
 const TEST_VTIME = Date.now();
 
-function mkTestSchema(opts) {
+interface TestOptions {
+  useDataPageV2: boolean;
+  compression: ParquetCompression;
+}
+
+function mkTestSchema(opts: TestOptions) {
   return new parquet.ParquetSchema({
     name: { type: 'UTF8', compression: opts.compression },
     // quantity:   { type: 'INT64', encoding: 'RLE', typeLength: 6, optional: true, compression: opts.compression },
@@ -21,21 +28,21 @@ function mkTestSchema(opts) {
     stock: {
       repeated: true,
       fields: {
-        quantity: { type: 'INT64', repeated: true },
+        quantity: { type: 'INT64', repeated: true, compression: opts.compression },
         warehouse: { type: 'UTF8', compression: opts.compression },
         opts: {
           optional: true,
           fields: {
-            a: { type: 'INT32' },
-            b: { type: 'INT32', optional: true }
+            a: { type: 'INT32', compression: opts.compression },
+            b: { type: 'INT32', optional: true, compression: opts.compression }
           }
         },
         tags: {
           optional: true,
           repeated: true,
           fields: {
-            name: { type: 'UTF8' },
-            val: { type: 'UTF8' }
+            name: { type: 'UTF8', compression: opts.compression },
+            val: { type: 'UTF8', compression: opts.compression }
           }
         }
       }
@@ -45,8 +52,8 @@ function mkTestSchema(opts) {
   });
 }
 
-function mkTestRows(opts?: any) {
-  const rows = [];
+function mkTestRows(opts?: TestOptions) {
+  const rows: any[] = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; ++i) {
     rows.push({
@@ -110,7 +117,7 @@ function mkTestRows(opts?: any) {
   return rows;
 }
 
-async function writeTestFile(opts) {
+async function writeTestFile(opts: TestOptions) {
   const schema = mkTestSchema(opts);
 
   const writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
@@ -405,69 +412,69 @@ describe('Parquet', function () {
 
   describe('with DataPageHeaderV1', function () {
     it('write a test file', function () {
-      const opts = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts);
     });
 
     it('write a test file and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with GZIP compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'GZIP' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'GZIP' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with SNAPPY compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'SNAPPY' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'SNAPPY' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with LZO compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'LZO' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'LZO' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with BROTLI compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'BROTLI' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'BROTLI' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with LZ4 compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'LZ4' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'LZ4' };
       return writeTestFile(opts).then(readTestFile);
     });
   });
 
   describe('with DataPageHeaderV2', function () {
     it('write a test file and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with GZIP compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'GZIP' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'GZIP' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with SNAPPY compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'SNAPPY' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'SNAPPY' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with LZO compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'LZO' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'LZO' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with BROTLI compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'BROTLI' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'BROTLI' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with LZ4 compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'LZ4' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'LZ4' };
       return writeTestFile(opts).then(readTestFile);
     });
 

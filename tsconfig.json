@@ -33,7 +33,7 @@
         // "strict": true,                        /* Enable all strict type-checking options. */
         "strict": false,
         // "noImplicitAny": true,                 /* Raise error on expressions and declarations with an implied 'any' type. */
-        "noImplicitAny": false,
+        "noImplicitAny": true,
         // "strictNullChecks": true,              /* Enable strict null checks. */
         // "strictFunctionTypes": true,           /* Enable strict checking of function types. */
         // "strictPropertyInitialization": true,  /* Enable strict checking of property initialization in classes. */

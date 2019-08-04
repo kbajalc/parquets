@@ -1,6 +1,6 @@
-import { PARQUET_CODEC } from './codec';
+import { CursorBuffer, ParquetCodecOptions, PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
-import { ColumnData, CursorBuffer, ParquetCodec, ParquetType, RecordBuffer, SchemaDefinition, TODO } from './declare';
+import { FieldDefinition, ParquetBuffer, ParquetCodec, ParquetCompression, ParquetData, ParquetRecord, ParquetType, PrimitiveType, SchemaDefinition } from './declare';
 // tslint:disable-next-line:max-line-length
 import { ColumnChunk, CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageHeader, PageType, RowGroup, SchemaElement, Type } from './gen';
 import { ParquetSchema } from './schema';
@@ -29,11 +29,11 @@ const PARQUET_RDLVL_ENCODING = 'RLE';
  */
 export class ParquetCursor<T> {
 
-  public metadata: TODO;
+  public metadata: FileMetaData;
   public envelopeReader: ParquetEnvelopeReader;
   public schema: ParquetSchema;
   public columnList: string[][];
-  public rowGroup: any[];
+  public rowGroup: ParquetRecord[];
   public rowGroupIndex: number;
 
   /**
@@ -42,7 +42,7 @@ export class ParquetCursor<T> {
    * advanced and internal use cases. Consider using getCursor() on the
    * ParquetReader instead
    */
-  constructor(metadata: TODO, envelopeReader: ParquetEnvelopeReader, schema: ParquetSchema, columnList: string[][]) {
+  constructor(metadata: FileMetaData, envelopeReader: ParquetEnvelopeReader, schema: ParquetSchema, columnList: string[][]) {
     this.metadata = metadata;
     this.envelopeReader = envelopeReader;
     this.schema = schema;
@@ -60,18 +60,15 @@ export class ParquetCursor<T> {
       if (this.rowGroupIndex >= this.metadata.row_groups.length) {
         return null;
       }
-
       const rowBuffer = await this.envelopeReader.readRowGroup(
         this.schema,
         this.metadata.row_groups[this.rowGroupIndex],
         this.columnList
       );
-
       this.rowGroup = Shred.materializeRecords(this.schema, rowBuffer);
       this.rowGroupIndex++;
     }
-
-    return this.rowGroup.shift();
+    return this.rowGroup.shift() as any;
   }
 
   /**
@@ -81,7 +78,6 @@ export class ParquetCursor<T> {
     this.rowGroup = [];
     this.rowGroupIndex = 0;
   }
-
 }
 
 /**
@@ -164,7 +160,7 @@ export class ParquetReader<T> {
    * not neccessarily equal to the number of rows in each column.
    */
   getRowCount(): number {
-    return this.metadata.num_rows;
+    return +this.metadata.num_rows;
   }
 
   /**
@@ -177,12 +173,11 @@ export class ParquetReader<T> {
   /**
    * Returns the user (key/value) metadata for this file
    */
-  getMetadata(): Record<string, TODO> {
-    const md = {};
+  getMetadata(): Record<string, string> {
+    const md: Record<string, string> = {};
     for (const kv of this.metadata.key_value_metadata) {
       md[kv.key] = kv.value;
     }
-
     return md;
   }
 
@@ -195,7 +190,6 @@ export class ParquetReader<T> {
     this.envelopeReader = null;
     this.metadata = null;
   }
-
 }
 
 /**
@@ -206,7 +200,7 @@ export class ParquetReader<T> {
  */
 export class ParquetEnvelopeReader {
 
-  static async openFile(filePath): Promise<ParquetEnvelopeReader> {
+  static async openFile(filePath: string): Promise<ParquetEnvelopeReader> {
     const fileStat = await Util.fstat(filePath);
     const fileDescriptor = await Util.fopen(filePath);
 
@@ -231,8 +225,8 @@ export class ParquetEnvelopeReader {
     }
   }
 
-  async readRowGroup(schema: ParquetSchema, rowGroup: RowGroup, columnList: string[][]): Promise<RecordBuffer> {
-    const buffer: RecordBuffer = {
+  async readRowGroup(schema: ParquetSchema, rowGroup: RowGroup, columnList: string[][]): Promise<ParquetBuffer> {
+    const buffer: ParquetBuffer = {
       rowCount: +rowGroup.num_rows,
       columnData: {}
     };
@@ -242,36 +236,33 @@ export class ParquetEnvelopeReader {
       if (columnList.length > 0 && Util.fieldIndexOf(columnList, colKey) < 0) {
         continue;
       }
-      buffer.columnData[colKey as any] = await this.readColumnChunk(schema, colChunk);
+      buffer.columnData[colKey.join()] = await this.readColumnChunk(schema, colChunk);
     }
     return buffer;
   }
 
-  async readColumnChunk(schema: ParquetSchema, colChunk: ColumnChunk): Promise<ColumnData> {
+  async readColumnChunk(schema: ParquetSchema, colChunk: ColumnChunk): Promise<ParquetData> {
     if (colChunk.file_path !== undefined && colChunk.file_path !== null) {
       throw new Error('external references are not supported');
     }
 
     const field = schema.findField(colChunk.meta_data.path_in_schema);
-    const type = Util.getThriftEnum(
+    const type: PrimitiveType = Util.getThriftEnum(
       Type,
-      colChunk.meta_data.type);
+      colChunk.meta_data.type
+    ) as any;
+    if (type !== field.primitiveType) throw new Error('chunk type not matching schema: ' + type);
 
-    const compression = Util.getThriftEnum(
+    const compression: ParquetCompression = Util.getThriftEnum(
       CompressionCodec,
-      colChunk.meta_data.codec);
+      colChunk.meta_data.codec
+    ) as any;
 
     const pagesOffset = +colChunk.meta_data.data_page_offset;
     const pagesSize = +colChunk.meta_data.total_compressed_size;
     const pagesBuf = await this.read(pagesOffset, pagesSize);
 
-    return decodeDataPages(pagesBuf, {
-      type,
-      rLevelMax: field.rLevelMax,
-      dLevelMax: field.dLevelMax,
-      compression,
-      column: field
-    });
+    return decodeDataPages(pagesBuf, field, compression);
   }
 
   async readFooter(): Promise<FileMetaData> {
@@ -300,22 +291,21 @@ export class ParquetEnvelopeReader {
 /**
  * Decode a consecutive array of data using one of the parquet encodings
  */
-function decodeValues(type: ParquetType, encoding: ParquetCodec, cursor: CursorBuffer, count: number, opts: TODO): any[] {
+function decodeValues(type: PrimitiveType, encoding: ParquetCodec, cursor: CursorBuffer, count: number, opts: ParquetCodecOptions): any[] {
   if (!(encoding in PARQUET_CODEC)) {
     throw new Error(`invalid encoding: ${encoding}`);
   }
-
   return PARQUET_CODEC[encoding].decodeValues(type, cursor, count, opts);
 }
 
-function decodeDataPages(buffer: Buffer, opts: TODO): ColumnData {
-  const cursor = {
+function decodeDataPages(buffer: Buffer, column: FieldDefinition, compression: ParquetCompression): ParquetData {
+  const cursor: CursorBuffer = {
     buffer,
     offset: 0,
     size: buffer.length
   };
 
-  const data = {
+  const data: ParquetData = {
     rlevels: [],
     dlevels: [],
     values: [],
@@ -333,13 +323,13 @@ function decodeDataPages(buffer: Buffer, opts: TODO): ColumnData {
       PageType,
       pageHeader.type);
 
-    let pageData = null;
+    let pageData: ParquetData = null;
     switch (pageType) {
       case 'DATA_PAGE':
-        pageData = decodeDataPage(cursor, pageHeader, opts);
+        pageData = decodeDataPage(cursor, pageHeader, column, compression);
         break;
       case 'DATA_PAGE_V2':
-        pageData = decodeDataPageV2(cursor, pageHeader, opts);
+        pageData = decodeDataPageV2(cursor, pageHeader, column, compression);
         break;
       default:
         throw new Error(`invalid page type: ${pageType}`);
@@ -354,7 +344,7 @@ function decodeDataPages(buffer: Buffer, opts: TODO): ColumnData {
   return data;
 }
 
-function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): ColumnData {
+function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: FieldDefinition, compression: ParquetCompression): ParquetData {
   const cursorEnd = cursor.offset + header.compressed_page_size;
   const valueCount = header.data_page_header.num_values;
 
@@ -376,9 +366,9 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
 
   /* uncompress page */
   let dataCursor = cursor;
-  if (opts.compression !== 'UNCOMPRESSED') {
+  if (compression !== 'UNCOMPRESSED') {
     const valuesBuf = Compression.inflate(
-      opts.compression,
+      compression,
       cursor.buffer.slice(cursor.offset, cursorEnd),
       header.uncompressed_page_size
     );
@@ -397,16 +387,16 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
   ) as ParquetCodec;
   // tslint:disable-next-line:prefer-array-literal
   let rLevels = new Array(valueCount);
-  if (opts.rLevelMax > 0) {
+  if (column.rLevelMax > 0) {
     rLevels = decodeValues(
       PARQUET_RDLVL_TYPE,
       rLevelEncoding,
       dataCursor,
       valueCount,
       {
-        bitWidth: Util.getBitWidth(opts.rLevelMax),
-        disableEnvelope: false,
-        column: opts.column
+        bitWidth: Util.getBitWidth(column.rLevelMax),
+        disableEnvelope: false
+        // column: opts.column
       }
     );
   } else {
@@ -420,16 +410,16 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
   ) as ParquetCodec;
   // tslint:disable-next-line:prefer-array-literal
   let dLevels = new Array(valueCount);
-  if (opts.dLevelMax > 0) {
+  if (column.dLevelMax > 0) {
     dLevels = decodeValues(
       PARQUET_RDLVL_TYPE,
       dLevelEncoding,
       dataCursor,
       valueCount,
       {
-        bitWidth: Util.getBitWidth(opts.dLevelMax),
-        disableEnvelope: false,
-        column: opts.column
+        bitWidth: Util.getBitWidth(column.dLevelMax),
+        disableEnvelope: false
+        // column: opts.column
       }
     );
   } else {
@@ -437,7 +427,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
   }
   let valueCountNonNull = 0;
   for (const dlvl of dLevels) {
-    if (dlvl === opts.dLevelMax) {
+    if (dlvl === column.dLevelMax) {
       ++valueCountNonNull;
     }
   }
@@ -448,13 +438,13 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
     header.data_page_header.encoding
   ) as ParquetCodec;
   const values = decodeValues(
-    opts.type,
+    column.primitiveType,
     valueEncoding,
     dataCursor,
     valueCountNonNull,
     {
-      typeLength: opts.column.typeLength,
-      bitWidth: opts.column.typeLength
+      typeLength: column.typeLength,
+      bitWidth: column.typeLength
     }
   );
 
@@ -470,7 +460,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, opts: TODO): C
   };
 }
 
-function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, opts: TODO): ColumnData {
+function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, column: FieldDefinition, compression: ParquetCompression): ParquetData {
   const cursorEnd = cursor.offset + header.compressed_page_size;
 
   const valueCount = header.data_page_header_v2.num_values;
@@ -483,14 +473,14 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, opts: TODO):
   /* read repetition levels */
   // tslint:disable-next-line:prefer-array-literal
   let rLevels = new Array(valueCount);
-  if (opts.rLevelMax > 0) {
+  if (column.rLevelMax > 0) {
     rLevels = decodeValues(
       PARQUET_RDLVL_TYPE,
       PARQUET_RDLVL_ENCODING,
       cursor,
       valueCount,
       {
-        bitWidth: Util.getBitWidth(opts.rLevelMax),
+        bitWidth: Util.getBitWidth(column.rLevelMax),
         disableEnvelope: true
       });
   } else {
@@ -500,14 +490,14 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, opts: TODO):
   /* read definition levels */
   // tslint:disable-next-line:prefer-array-literal
   let dLevels = new Array(valueCount);
-  if (opts.dLevelMax > 0) {
+  if (column.dLevelMax > 0) {
     dLevels = decodeValues(
       PARQUET_RDLVL_TYPE,
       PARQUET_RDLVL_ENCODING,
       cursor,
       valueCount,
       {
-        bitWidth: Util.getBitWidth(opts.dLevelMax),
+        bitWidth: Util.getBitWidth(column.dLevelMax),
         disableEnvelope: true
       });
   } else {
@@ -519,7 +509,7 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, opts: TODO):
 
   if (header.data_page_header_v2.is_compressed) {
     const valuesBuf = Compression.inflate(
-      opts.compression,
+      compression,
       cursor.buffer.slice(cursor.offset, cursorEnd),
       header.uncompressed_page_size
     );
@@ -534,13 +524,13 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, opts: TODO):
   }
 
   const values = decodeValues(
-    opts.type,
+    column.primitiveType,
     valueEncoding,
     valuesBufCursor,
     valueCountNonNull,
     {
-      typeLength: opts.column.typeLength,
-      bitWidth: opts.column.typeLength
+      typeLength: column.typeLength,
+      bitWidth: column.typeLength
     }
   );
 

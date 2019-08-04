@@ -1,15 +1,18 @@
+import { ParquetCompression } from './declare';
+import * as Util from './util';
 import zlib = require('zlib');
 import snappyjs = require('snappyjs');
-import { ParquetCompression } from './declare';
 
 let brotli: any;
 let lzo: any;
 let lz4js: any;
 
-export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, {
-  deflate: (value: Buffer) => Buffer,
-  inflate: (value: Buffer, size: number) => Buffer
-}> = {
+export interface ParquetCompressionKit {
+  deflate: (value: Buffer) => Buffer;
+  inflate: (value: Buffer, size: number) => Buffer;
+}
+
+export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, ParquetCompressionKit> = {
   UNCOMPRESSED: {
     deflate: deflate_identity,
     inflate: inflate_identity
@@ -60,12 +63,12 @@ function deflate_snappy(value: Buffer): Buffer {
 }
 
 function deflate_lzo(value: Buffer): Buffer {
-  lzo = lzo || (module || global)['require']('lzo');
+  lzo = lzo || Util.load('lzo');
   return lzo.compress(value);
 }
 
 function deflate_brotli(value: Buffer): Buffer {
-  brotli = brotli || (module || global)['require']('brotli');
+  brotli = brotli || Util.load('brotli');
   const result = brotli.compress(value, {
     mode: 0,
     quality: 8,
@@ -75,7 +78,7 @@ function deflate_brotli(value: Buffer): Buffer {
 }
 
 function deflate_lz4(value: Buffer): Buffer {
-  lz4js = lz4js || (module || global)['require']('lz4js');
+  lz4js = lz4js || Util.load('lz4js');
   try {
     // let result = Buffer.alloc(lz4js.encodeBound(value.length));
     // const compressedSize = lz4.encodeBlock(value, result);
@@ -112,12 +115,12 @@ function inflate_snappy(value: Buffer): Buffer {
 }
 
 function inflate_lzo(value: Buffer, size: number): Buffer {
-  lzo = lzo || (module || global)['require']('lzo');
+  lzo = lzo || Util.load('lzo');
   return lzo.decompress(value, size);
 }
 
 function inflate_lz4(value: Buffer, size: number): Buffer {
-  lz4js = lz4js || (module || global)['require']('lz4js');
+  lz4js = lz4js || Util.load('lz4js');
   try {
     // let result = Buffer.alloc(size);
     // const uncompressedSize = lz4js.decodeBlock(value, result);
@@ -131,7 +134,7 @@ function inflate_lz4(value: Buffer, size: number): Buffer {
 }
 
 function inflate_brotli(value: Buffer): Buffer {
-  brotli = brotli || (module || global)['require']('brotli');
+  brotli = brotli || Util.load('brotli');
   if (!value.length) {
     return Buffer.alloc(0);
   }

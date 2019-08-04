@@ -5,9 +5,10 @@
         "no-increment-decrement": false,
         "import-name": false,
         "trailing-comma": false,
+        "prefer-template": false,
         "max-line-length": [
             true,
-            140
+            200
         ],
         "import-blacklist": [
             true,

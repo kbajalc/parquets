@@ -1,212 +1,8 @@
-import { FieldDefinition, ParquetType, TODO } from '../declare';
+import { PrimitiveType } from '../declare';
+import { CursorBuffer, ParquetCodecOptions } from './declare';
 import INT53 = require('int53');
 
-function encodeValues_BOOLEAN(values: boolean[]): Buffer {
-  const buf = Buffer.alloc(Math.ceil(values.length / 8));
-  buf.fill(0);
-
-  for (let i = 0; i < values.length; ++i) {
-    if (values[i]) {
-      buf[Math.floor(i / 8)] |= (1 << (i % 8));
-    }
-  }
-
-  return buf;
-}
-
-function decodeValues_BOOLEAN(cursor: TODO, count: number): boolean[] {
-  const values: boolean[] = [];
-
-  for (let i = 0; i < count; ++i) {
-    const b = cursor.buffer[cursor.offset + Math.floor(i / 8)];
-    values.push((b & (1 << (i % 8))) > 0);
-  }
-
-  cursor.offset += Math.ceil(count / 8);
-  return values;
-}
-
-function encodeValues_INT32(values: number[]): Buffer {
-  const buf = Buffer.alloc(4 * values.length);
-  for (let i = 0; i < values.length; i++) {
-    buf.writeInt32LE(values[i], i * 4);
-  }
-
-  return buf;
-}
-
-function decodeValues_INT32(cursor: TODO, count: number): number[] {
-  const values: number[] = [];
-
-  for (let i = 0; i < count; ++i) {
-    values.push(cursor.buffer.readInt32LE(cursor.offset));
-    cursor.offset += 4;
-  }
-
-  return values;
-}
-
-function encodeValues_INT64(values: number[]): Buffer {
-  const buf = Buffer.alloc(8 * values.length);
-  for (let i = 0; i < values.length; i++) {
-    INT53.writeInt64LE(values[i], buf, i * 8);
-  }
-
-  return buf;
-}
-
-function decodeValues_INT64(cursor: TODO, count: number): number[] {
-  const values: number[] = [];
-
-  for (let i = 0; i < count; ++i) {
-    values.push(INT53.readInt64LE(cursor.buffer, cursor.offset));
-    cursor.offset += 8;
-  }
-
-  return values;
-}
-
-function encodeValues_INT96(values: number[]): Buffer {
-  const buf = Buffer.alloc(12 * values.length);
-
-  for (let i = 0; i < values.length; i++) {
-    if (values[i] >= 0) {
-      INT53.writeInt64LE(values[i], buf, i * 12);
-      buf.writeUInt32LE(0, i * 12 + 8); // truncate to 64 actual precision
-    } else {
-      INT53.writeInt64LE((~-values[i]) + 1, buf, i * 12);
-      buf.writeUInt32LE(0xffffffff, i * 12 + 8); // truncate to 64 actual precision
-    }
-  }
-
-  return buf;
-}
-
-function decodeValues_INT96(cursor: TODO, count: number): number[] {
-  const values: number[] = [];
-
-  for (let i = 0; i < count; ++i) {
-    const low = INT53.readInt64LE(cursor.buffer, cursor.offset);
-    const high = cursor.buffer.readUInt32LE(cursor.offset + 8);
-
-    if (high === 0xffffffff) {
-      values.push((~-low) + 1); // truncate to 64 actual precision
-    } else {
-      values.push(low); // truncate to 64 actual precision
-    }
-
-    cursor.offset += 12;
-  }
-
-  return values;
-}
-
-function encodeValues_FLOAT(values: number[]): Buffer {
-  const buf = Buffer.alloc(4 * values.length);
-  for (let i = 0; i < values.length; i++) {
-    buf.writeFloatLE(values[i], i * 4);
-  }
-
-  return buf;
-}
-
-function decodeValues_FLOAT(cursor: TODO, count: number): number[] {
-  const values: number[] = [];
-
-  for (let i = 0; i < count; ++i) {
-    values.push(cursor.buffer.readFloatLE(cursor.offset));
-    cursor.offset += 4;
-  }
-
-  return values;
-}
-
-function encodeValues_DOUBLE(values: number[]): Buffer {
-  const buf = Buffer.alloc(8 * values.length);
-  for (let i = 0; i < values.length; i++) {
-    buf.writeDoubleLE(values[i], i * 8);
-  }
-
-  return buf;
-}
-
-function decodeValues_DOUBLE(cursor, count): number[] {
-  const values: number[] = [];
-
-  for (let i = 0; i < count; ++i) {
-    values.push(cursor.buffer.readDoubleLE(cursor.offset));
-    cursor.offset += 8;
-  }
-
-  return values;
-}
-
-function encodeValues_BYTE_ARRAY(values): Buffer {
-  // tslint:disable-next-line:variable-name
-  let buf_len = 0;
-  for (let i = 0; i < values.length; i++) {
-    values[i] = Buffer.from(values[i]);
-    buf_len += 4 + values[i].length;
-  }
-
-  const buf = Buffer.alloc(buf_len);
-  // tslint:disable-next-line:variable-name
-  let buf_pos = 0;
-  for (let i = 0; i < values.length; i++) {
-    buf.writeUInt32LE(values[i].length, buf_pos);
-    values[i].copy(buf, buf_pos + 4);
-    buf_pos += 4 + values[i].length;
-
-  }
-
-  return buf;
-}
-
-function decodeValues_BYTE_ARRAY(cursor: TODO, count: number): TODO[] {
-  const values = [];
-
-  for (let i = 0; i < count; ++i) {
-    const len = cursor.buffer.readUInt32LE(cursor.offset);
-    cursor.offset += 4;
-    values.push(cursor.buffer.slice(cursor.offset, cursor.offset + len));
-    cursor.offset += len;
-  }
-
-  return values;
-}
-
-function encodeValues_FIXED_LEN_BYTE_ARRAY(values: TODO, opts: FieldDefinition): Buffer {
-  if (!opts.typeLength) {
-    throw new Error('missing option: typeLength (required for FIXED_LEN_BYTE_ARRAY)');
-  }
-
-  for (let i = 0; i < values.length; i++) {
-    values[i] = Buffer.from(values[i]);
-
-    if (values[i].length !== opts.typeLength) {
-      throw new Error(`invalid value for FIXED_LEN_BYTE_ARRAY: ${values[i]}`);
-    }
-  }
-
-  return Buffer.concat(values);
-}
-
-function decodeValues_FIXED_LEN_BYTE_ARRAY(cursor: TODO, count: number, opts: FieldDefinition): TODO[] {
-  const values = [];
-
-  if (!opts.typeLength) {
-    throw new Error('missing option: typeLength (required for FIXED_LEN_BYTE_ARRAY)');
-  }
-
-  for (let i = 0; i < count; ++i) {
-    values.push(cursor.buffer.slice(cursor.offset, cursor.offset + opts.typeLength));
-    cursor.offset += opts.typeLength;
-  }
-
-  return values;
-}
-
-export function encodeValues(type: ParquetType, values: any, opts?: TODO): Buffer {
+export function encodeValues(type: PrimitiveType, values: any[], opts?: ParquetCodecOptions): Buffer {
   switch (type) {
     case 'BOOLEAN':
       return encodeValues_BOOLEAN(values);
@@ -229,7 +25,7 @@ export function encodeValues(type: ParquetType, values: any, opts?: TODO): Buffe
   }
 }
 
-export function decodeValues(type: ParquetType, cursor: TODO, count: number, opts: TODO): any[] {
+export function decodeValues(type: PrimitiveType, cursor: CursorBuffer, count: number, opts: ParquetCodecOptions): any[] {
   switch (type) {
     case 'BOOLEAN':
       return decodeValues_BOOLEAN(cursor, count);
@@ -250,4 +46,177 @@ export function decodeValues(type: ParquetType, cursor: TODO, count: number, opt
     default:
       throw new Error(`unsupported type: ${type}`);
   }
+}
+
+function encodeValues_BOOLEAN(values: boolean[]): Buffer {
+  const buf = Buffer.alloc(Math.ceil(values.length / 8));
+  buf.fill(0);
+  for (let i = 0; i < values.length; ++i) {
+    if (values[i]) {
+      buf[Math.floor(i / 8)] |= (1 << (i % 8));
+    }
+  }
+  return buf;
+}
+
+function decodeValues_BOOLEAN(cursor: CursorBuffer, count: number): boolean[] {
+  const values: boolean[] = [];
+  for (let i = 0; i < count; ++i) {
+    const b = cursor.buffer[cursor.offset + Math.floor(i / 8)];
+    values.push((b & (1 << (i % 8))) > 0);
+  }
+  cursor.offset += Math.ceil(count / 8);
+  return values;
+}
+
+function encodeValues_INT32(values: number[]): Buffer {
+  const buf = Buffer.alloc(4 * values.length);
+  for (let i = 0; i < values.length; i++) {
+    buf.writeInt32LE(values[i], i * 4);
+  }
+  return buf;
+}
+
+function decodeValues_INT32(cursor: CursorBuffer, count: number): number[] {
+  const values: number[] = [];
+  for (let i = 0; i < count; ++i) {
+    values.push(cursor.buffer.readInt32LE(cursor.offset));
+    cursor.offset += 4;
+  }
+  return values;
+}
+
+function encodeValues_INT64(values: number[]): Buffer {
+  const buf = Buffer.alloc(8 * values.length);
+  for (let i = 0; i < values.length; i++) {
+    INT53.writeInt64LE(values[i], buf, i * 8);
+  }
+  return buf;
+}
+
+function decodeValues_INT64(cursor: CursorBuffer, count: number): number[] {
+  const values: number[] = [];
+  for (let i = 0; i < count; ++i) {
+    values.push(INT53.readInt64LE(cursor.buffer, cursor.offset));
+    cursor.offset += 8;
+  }
+  return values;
+}
+
+function encodeValues_INT96(values: number[]): Buffer {
+  const buf = Buffer.alloc(12 * values.length);
+  for (let i = 0; i < values.length; i++) {
+    if (values[i] >= 0) {
+      INT53.writeInt64LE(values[i], buf, i * 12);
+      buf.writeUInt32LE(0, i * 12 + 8); // truncate to 64 actual precision
+    } else {
+      INT53.writeInt64LE((~-values[i]) + 1, buf, i * 12);
+      buf.writeUInt32LE(0xffffffff, i * 12 + 8); // truncate to 64 actual precision
+    }
+  }
+  return buf;
+}
+
+function decodeValues_INT96(cursor: CursorBuffer, count: number): number[] {
+  const values: number[] = [];
+  for (let i = 0; i < count; ++i) {
+    const low = INT53.readInt64LE(cursor.buffer, cursor.offset);
+    const high = cursor.buffer.readUInt32LE(cursor.offset + 8);
+    if (high === 0xffffffff) {
+      values.push((~-low) + 1); // truncate to 64 actual precision
+    } else {
+      values.push(low); // truncate to 64 actual precision
+    }
+    cursor.offset += 12;
+  }
+  return values;
+}
+
+function encodeValues_FLOAT(values: number[]): Buffer {
+  const buf = Buffer.alloc(4 * values.length);
+  for (let i = 0; i < values.length; i++) {
+    buf.writeFloatLE(values[i], i * 4);
+  }
+  return buf;
+}
+
+function decodeValues_FLOAT(cursor: CursorBuffer, count: number): number[] {
+  const values: number[] = [];
+  for (let i = 0; i < count; ++i) {
+    values.push(cursor.buffer.readFloatLE(cursor.offset));
+    cursor.offset += 4;
+  }
+  return values;
+}
+
+function encodeValues_DOUBLE(values: number[]): Buffer {
+  const buf = Buffer.alloc(8 * values.length);
+  for (let i = 0; i < values.length; i++) {
+    buf.writeDoubleLE(values[i], i * 8);
+  }
+  return buf;
+}
+
+function decodeValues_DOUBLE(cursor: CursorBuffer, count: number): number[] {
+  const values: number[] = [];
+  for (let i = 0; i < count; ++i) {
+    values.push(cursor.buffer.readDoubleLE(cursor.offset));
+    cursor.offset += 8;
+  }
+  return values;
+}
+
+function encodeValues_BYTE_ARRAY(values: Buffer[]): Buffer {
+  // tslint:disable-next-line:variable-name
+  let buf_len = 0;
+  for (let i = 0; i < values.length; i++) {
+    values[i] = Buffer.from(values[i]);
+    buf_len += 4 + values[i].length;
+  }
+  const buf = Buffer.alloc(buf_len);
+  // tslint:disable-next-line:variable-name
+  let buf_pos = 0;
+  for (let i = 0; i < values.length; i++) {
+    buf.writeUInt32LE(values[i].length, buf_pos);
+    values[i].copy(buf, buf_pos + 4);
+    buf_pos += 4 + values[i].length;
+
+  }
+  return buf;
+}
+
+function decodeValues_BYTE_ARRAY(cursor: CursorBuffer, count: number): Buffer[] {
+  const values: Buffer[] = [];
+  for (let i = 0; i < count; i++) {
+    const len = cursor.buffer.readUInt32LE(cursor.offset);
+    cursor.offset += 4;
+    values.push(cursor.buffer.slice(cursor.offset, cursor.offset + len));
+    cursor.offset += len;
+  }
+  return values;
+}
+
+function encodeValues_FIXED_LEN_BYTE_ARRAY(values: Buffer[], opts: ParquetCodecOptions): Buffer {
+  if (!opts.typeLength) {
+    throw new Error('missing option: typeLength (required for FIXED_LEN_BYTE_ARRAY)');
+  }
+  for (let i = 0; i < values.length; i++) {
+    values[i] = Buffer.from(values[i]);
+    if (values[i].length !== opts.typeLength) {
+      throw new Error(`invalid value for FIXED_LEN_BYTE_ARRAY: ${values[i]}`);
+    }
+  }
+  return Buffer.concat(values);
+}
+
+function decodeValues_FIXED_LEN_BYTE_ARRAY(cursor: CursorBuffer, count: number, opts: ParquetCodecOptions): Buffer[] {
+  const values: Buffer[] = [];
+  if (!opts.typeLength) {
+    throw new Error('missing option: typeLength (required for FIXED_LEN_BYTE_ARRAY)');
+  }
+  for (let i = 0; i < count; i++) {
+    values.push(cursor.buffer.slice(cursor.offset, cursor.offset + opts.typeLength));
+    cursor.offset += opts.typeLength;
+  }
+  return values;
 }

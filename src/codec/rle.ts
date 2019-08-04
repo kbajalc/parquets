@@ -1,7 +1,8 @@
 import varint = require('varint');
-import { ParquetType, TODO } from '../declare';
+import { PrimitiveType } from '../declare';
+import { CursorBuffer, ParquetCodecOptions } from './declare';
 
-function encodeRunBitpacked(values: number[], opts: TODO): Buffer {
+function encodeRunBitpacked(values: number[], opts: ParquetCodecOptions): Buffer {
   for (let i = 0; i < values.length % 8; i++) {
     values.push(0);
   }
@@ -19,7 +20,7 @@ function encodeRunBitpacked(values: number[], opts: TODO): Buffer {
   ]);
 }
 
-function encodeRunRepeated(value: number, count: number, opts: TODO) {
+function encodeRunRepeated(value: number, count: number, opts: ParquetCodecOptions): Buffer {
   const buf = Buffer.alloc(Math.ceil(opts.bitWidth / 8));
 
   for (let i = 0; i < buf.length; ++i) {
@@ -33,7 +34,7 @@ function encodeRunRepeated(value: number, count: number, opts: TODO) {
   ]);
 }
 
-export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buffer {
+export function encodeValues(type: PrimitiveType, values: any[], opts: ParquetCodecOptions): Buffer {
   if (!('bitWidth' in opts)) {
     throw new Error('bitWidth is required');
   }
@@ -94,7 +95,7 @@ export function encodeValues(type: ParquetType, values: any[], opts: TODO): Buff
   return envelope;
 }
 
-function decodeRunBitpacked(cursor: TODO, count: number, opts: TODO): number[] {
+function decodeRunBitpacked(cursor: CursorBuffer, count: number, opts: ParquetCodecOptions): number[] {
   if (count % 8 !== 0) {
     throw new Error('must be a multiple of 8');
   }
@@ -111,7 +112,7 @@ function decodeRunBitpacked(cursor: TODO, count: number, opts: TODO): number[] {
   return values;
 }
 
-function decodeRunRepeated(cursor: TODO, count: number, opts: TODO): number[] {
+function decodeRunRepeated(cursor: CursorBuffer, count: number, opts: ParquetCodecOptions): number[] {
   let value = 0;
   for (let i = 0; i < Math.ceil(opts.bitWidth / 8); ++i) {
     value << 8;
@@ -123,7 +124,7 @@ function decodeRunRepeated(cursor: TODO, count: number, opts: TODO): number[] {
   return new Array(count).fill(value);
 }
 
-export function decodeValues(type: ParquetType, cursor: TODO, count: number, opts: TODO): number[] {
+export function decodeValues(type: PrimitiveType, cursor: CursorBuffer, count: number, opts: ParquetCodecOptions): number[] {
   if (!('bitWidth' in opts)) {
     throw new Error('bitWidth is required');
   }
@@ -132,7 +133,7 @@ export function decodeValues(type: ParquetType, cursor: TODO, count: number, opt
     cursor.offset += 4;
   }
 
-  let values = [];
+  let values: number[] = [];
   while (values.length < count) {
     const header = varint.decode(cursor.buffer, cursor.offset);
     cursor.offset += varint.encodingLength(header);

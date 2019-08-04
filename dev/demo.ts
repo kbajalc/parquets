@@ -1,6 +1,6 @@
 // tslint:disable-next-line:import-blacklist
-import { ParquetCompression, ParquetReader, ParquetSchema, ParquetWriter } from '../src';
-import { ParquetWriterOptions } from '../src/writer';
+import { ParquetReader, ParquetSchema, ParquetWriter, ParquetWriterOptions } from '../src';
+// import snappyjs = require('snappyjs');
 
 const TEST_VTIME = Date.now();
 const TEST_NUM_ROWS = 10;
@@ -8,29 +8,29 @@ const TEST_NUM_ROWS = 10;
 // write a new file 'fruits.parquet'
 async function example() {
 
+  // snappyjs.compress(Buffer.from('Test string data'));
+
   const opts: ParquetWriterOptions = {
     useDataPageV2: false,
-    compression: 'UNCOMPRESSED' as ParquetCompression,
     // pageSize: 12
   };
 
   const schema = new ParquetSchema({
-    name: { type: 'UTF8', compression: opts.compression },
-    // map: { type: '' },
+    name: { type: 'UTF8' },
     // parquet-mr actually doesnt support this
     // quantity: { type: 'INT64', encoding: 'RLE', typeLength: 6, optional: true, compression: opts.compression },
-    quantity: { type: 'INT64', optional: true, compression: opts.compression },
-    // price: { type: 'DOUBLE', compression: opts.compression },
-    // date: { type: 'TIMESTAMP_MICROS', compression: opts.compression },
-    // day: { type: 'DATE', compression: opts.compression },
-    // finger: { type: 'FIXED_LEN_BYTE_ARRAY', compression: opts.compression, typeLength: 5 },
-    // inter: { type: 'INTERVAL', compression: opts.compression },
+    quantity: { type: 'INT64', optional: true },
+    price: { type: 'DOUBLE' },
+    date: { type: 'TIMESTAMP_MICROS' },
+    day: { type: 'DATE' },
+    finger: { type: 'FIXED_LEN_BYTE_ARRAY', typeLength: 5 },
+    inter: { type: 'INTERVAL' },
     // // TODO: Drill compatible
     stock: {
       repeated: true,
       fields: {
         quantity: { type: 'INT64', repeated: true },
-        warehouse: { type: 'UTF8', /*compression: opts.compression*/ },
+        warehouse: { type: 'UTF8' },
         loc: {
           optional: true,
           fields: {
@@ -57,7 +57,7 @@ async function example() {
     // colour: { type: 'UTF8', repeated: true, compression: opts.compression },
     // meta_json: { type: 'BSON', optional: true, compression: opts.compression },
     // compression: { type: 'UTF8', optional: true, compression: opts.compression }
-  });
+  }).compress('SNAPPY');
 
   console.log(schema);
 
@@ -81,7 +81,7 @@ async function example() {
 }
 
 function mkTestRows(opts?: any) {
-  const rows = [];
+  const rows: any[] = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; ++i) {
     rows.push({
@@ -147,7 +147,7 @@ function mkTestRows(opts?: any) {
 }
 
 export function mkTestRowsNoRepeat(opts?: any) {
-  const rows = [];
+  const rows: any[] = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; ++i) {
     rows.push({
