@@ -51,7 +51,7 @@ export function decodeValues(type: PrimitiveType, cursor: CursorBuffer, count: n
 function encodeValues_BOOLEAN(values: boolean[]): Buffer {
   const buf = Buffer.alloc(Math.ceil(values.length / 8));
   buf.fill(0);
-  for (let i = 0; i < values.length; ++i) {
+  for (let i = 0; i < values.length; i++) {
     if (values[i]) {
       buf[Math.floor(i / 8)] |= (1 << (i % 8));
     }
@@ -61,7 +61,7 @@ function encodeValues_BOOLEAN(values: boolean[]): Buffer {
 
 function decodeValues_BOOLEAN(cursor: CursorBuffer, count: number): boolean[] {
   const values: boolean[] = [];
-  for (let i = 0; i < count; ++i) {
+  for (let i = 0; i < count; i++) {
     const b = cursor.buffer[cursor.offset + Math.floor(i / 8)];
     values.push((b & (1 << (i % 8))) > 0);
   }
@@ -79,7 +79,7 @@ function encodeValues_INT32(values: number[]): Buffer {
 
 function decodeValues_INT32(cursor: CursorBuffer, count: number): number[] {
   const values: number[] = [];
-  for (let i = 0; i < count; ++i) {
+  for (let i = 0; i < count; i++) {
     values.push(cursor.buffer.readInt32LE(cursor.offset));
     cursor.offset += 4;
   }
@@ -96,7 +96,7 @@ function encodeValues_INT64(values: number[]): Buffer {
 
 function decodeValues_INT64(cursor: CursorBuffer, count: number): number[] {
   const values: number[] = [];
-  for (let i = 0; i < count; ++i) {
+  for (let i = 0; i < count; i++) {
     values.push(INT53.readInt64LE(cursor.buffer, cursor.offset));
     cursor.offset += 8;
   }
@@ -119,7 +119,7 @@ function encodeValues_INT96(values: number[]): Buffer {
 
 function decodeValues_INT96(cursor: CursorBuffer, count: number): number[] {
   const values: number[] = [];
-  for (let i = 0; i < count; ++i) {
+  for (let i = 0; i < count; i++) {
     const low = INT53.readInt64LE(cursor.buffer, cursor.offset);
     const high = cursor.buffer.readUInt32LE(cursor.offset + 8);
     if (high === 0xffffffff) {
@@ -142,7 +142,7 @@ function encodeValues_FLOAT(values: number[]): Buffer {
 
 function decodeValues_FLOAT(cursor: CursorBuffer, count: number): number[] {
   const values: number[] = [];
-  for (let i = 0; i < count; ++i) {
+  for (let i = 0; i < count; i++) {
     values.push(cursor.buffer.readFloatLE(cursor.offset));
     cursor.offset += 4;
   }
@@ -159,7 +159,7 @@ function encodeValues_DOUBLE(values: number[]): Buffer {
 
 function decodeValues_DOUBLE(cursor: CursorBuffer, count: number): number[] {
   const values: number[] = [];
-  for (let i = 0; i < count; ++i) {
+  for (let i = 0; i < count; i++) {
     values.push(cursor.buffer.readDoubleLE(cursor.offset));
     cursor.offset += 8;
   }

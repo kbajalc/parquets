@@ -8,7 +8,7 @@ function encodeRunBitpacked(values: number[], opts: ParquetCodecOptions): Buffer
   }
 
   const buf = Buffer.alloc(Math.ceil(opts.bitWidth * (values.length / 8)));
-  for (let b = 0; b < opts.bitWidth * values.length; ++b) {
+  for (let b = 0; b < opts.bitWidth * values.length; b++) {
     if ((values[Math.floor(b / opts.bitWidth)] & (1 << b % opts.bitWidth)) > 0) {
       buf[Math.floor(b / 8)] |= (1 << (b % 8));
     }
@@ -23,7 +23,7 @@ function encodeRunBitpacked(values: number[], opts: ParquetCodecOptions): Buffer
 function encodeRunRepeated(value: number, count: number, opts: ParquetCodecOptions): Buffer {
   const buf = Buffer.alloc(Math.ceil(opts.bitWidth / 8));
 
-  for (let i = 0; i < buf.length; ++i) {
+  for (let i = 0; i < buf.length; i++) {
     buf.writeUInt8(value & 0xff, i);
     value >> 8;
   }
@@ -102,7 +102,7 @@ function decodeRunBitpacked(cursor: CursorBuffer, count: number, opts: ParquetCo
 
   // tslint:disable-next-line:prefer-array-literal
   const values = new Array(count).fill(0);
-  for (let b = 0; b < opts.bitWidth * count; ++b) {
+  for (let b = 0; b < opts.bitWidth * count; b++) {
     if (cursor.buffer[cursor.offset + Math.floor(b / 8)] & (1 << (b % 8))) {
       values[Math.floor(b / opts.bitWidth)] |= (1 << b % opts.bitWidth);
     }
@@ -114,7 +114,7 @@ function decodeRunBitpacked(cursor: CursorBuffer, count: number, opts: ParquetCo
 
 function decodeRunRepeated(cursor: CursorBuffer, count: number, opts: ParquetCodecOptions): number[] {
   let value = 0;
-  for (let i = 0; i < Math.ceil(opts.bitWidth / 8); ++i) {
+  for (let i = 0; i < Math.ceil(opts.bitWidth / 8); i++) {
     value << 8;
     value += cursor.buffer[cursor.offset];
     cursor.offset += 1;

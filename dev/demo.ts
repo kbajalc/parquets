@@ -83,7 +83,7 @@ async function example() {
 function mkTestRows(opts?: any) {
   const rows: any[] = [];
 
-  for (let i = 0; i < TEST_NUM_ROWS; ++i) {
+  for (let i = 0; i < TEST_NUM_ROWS; i++) {
     rows.push({
       name: 'apples',
       quantity: 10,
@@ -149,7 +149,7 @@ function mkTestRows(opts?: any) {
 export function mkTestRowsNoRepeat(opts?: any) {
   const rows: any[] = [];
 
-  for (let i = 0; i < TEST_NUM_ROWS; ++i) {
+  for (let i = 0; i < TEST_NUM_ROWS; i++) {
     rows.push({
       name: 'apples',
       quantity: 10,

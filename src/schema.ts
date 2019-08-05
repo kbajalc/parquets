@@ -1,16 +1,16 @@
 import { PARQUET_CODEC } from './codec';
 import { PARQUET_COMPRESSION_METHODS } from './compression';
-import { ElementDefinition, FieldDefinition, ParquetBuffer, ParquetCompression, ParquetRecord, RepetitionType, SchemaDefinition } from './declare';
-import { materializeRecords, shredRecord } from './shred';
+import { FieldDefinition, ParquetBuffer, ParquetCompression, ParquetField, ParquetRecord, RepetitionType, SchemaDefinition } from './declare';
+import { materializeRecords, shredBuffer, shredRecord } from './shred';
 import { PARQUET_LOGICAL_TYPES } from './types';
 
 /**
  * A parquet file schema
  */
 export class ParquetSchema {
-  public schema: Record<string, ElementDefinition>;
-  public fields: Record<string, FieldDefinition>;
-  public fieldList: FieldDefinition[];
+  public schema: Record<string, FieldDefinition>;
+  public fields: Record<string, ParquetField>;
+  public fieldList: ParquetField[];
 
   /**
    * Create a new schema from a JSON schema definition
@@ -24,9 +24,9 @@ export class ParquetSchema {
   /**
    * Retrieve a field definition
    */
-  findField(path: string): FieldDefinition;
-  findField(path: string[]): FieldDefinition;
-  findField(path: any): FieldDefinition {
+  findField(path: string): ParquetField;
+  findField(path: string[]): ParquetField;
+  findField(path: any): ParquetField {
     if (path.constructor !== Array) {
       // tslint:disable-next-line:no-parameter-reassignment
       path = path.split(',');
@@ -46,8 +46,8 @@ export class ParquetSchema {
   /**
    * Retrieve a field definition and all the field's ancestors
    */
-  findFieldBranch(path: string): FieldDefinition[];
-  findFieldBranch(path: string[]): FieldDefinition[];
+  findFieldBranch(path: string): ParquetField[];
+  findFieldBranch(path: string[]): ParquetField[];
   findFieldBranch(path: any): any[] {
     if (path.constructor !== Array) {
       // tslint:disable-next-line:no-parameter-reassignment
@@ -77,6 +77,10 @@ export class ParquetSchema {
     setCompress(this.fields, type);
     return this;
   }
+
+  buffer(): ParquetBuffer {
+    return shredBuffer(this);
+  }
 }
 
 function setCompress(schema: any, type: ParquetCompression) {
@@ -95,8 +99,8 @@ function buildFields(
   rLevelParentMax: number,
   dLevelParentMax: number,
   path: string[]
-): Record<string, FieldDefinition> {
-  const fieldList: Record<string, FieldDefinition> = {};
+): Record<string, ParquetField> {
+  const fieldList: Record<string, ParquetField> = {};
 
   for (const name in schema) {
     const opts = schema[name];
@@ -120,9 +124,11 @@ function buildFields(
 
     /* nested field */
     if (opts.fields) {
+      const cpath = path.concat([name]);
       fieldList[name] = {
         name,
-        path: path.concat([name]),
+        path: cpath,
+        key: cpath.join(),
         repetitionType,
         rLevelMax,
         dLevelMax,
@@ -132,7 +138,8 @@ function buildFields(
           opts.fields,
           rLevelMax,
           dLevelMax,
-          path.concat([name]))
+          cpath
+        )
       };
       continue;
     }
@@ -153,11 +160,13 @@ function buildFields(
     }
 
     /* add to schema */
+    const cpath = path.concat([name]);
     fieldList[name] = {
       name,
       primitiveType: typeDef.primitiveType,
       originalType: typeDef.originalType,
-      path: path.concat([name]),
+      path: cpath,
+      key: cpath.join(),
       repetitionType,
       encoding: opts.encoding,
       compression: opts.compression,
@@ -169,8 +178,8 @@ function buildFields(
   return fieldList;
 }
 
-function listFields(fields: Record<string, FieldDefinition>): FieldDefinition[] {
-  let list: FieldDefinition[] = [];
+function listFields(fields: Record<string, ParquetField>): ParquetField[] {
+  let list: ParquetField[] = [];
   for (const k in fields) {
     list.push(fields[k]);
     if (fields[k].isNested) {

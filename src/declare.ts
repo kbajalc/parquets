@@ -1,3 +1,4 @@
+
 export type ParquetCodec = 'PLAIN' | 'RLE';
 export type ParquetCompression = 'UNCOMPRESSED' | 'GZIP' | 'SNAPPY' | 'LZO' | 'BROTLI' | 'LZ4';
 export type RepetitionType = 'REQUIRED' | 'OPTIONAL' | 'REPEATED';
@@ -40,10 +41,10 @@ export type OriginalType =
   | 'INTERVAL'; // 21
 
 export interface SchemaDefinition {
-  [string: string]: ElementDefinition;
+  [string: string]: FieldDefinition;
 }
 
-export interface ElementDefinition {
+export interface FieldDefinition {
   type?: ParquetType;
   typeLength?: number;
   encoding?: ParquetCodec;
@@ -53,9 +54,10 @@ export interface ElementDefinition {
   fields?: SchemaDefinition;
 }
 
-export interface FieldDefinition {
+export interface ParquetField {
   name: string;
   path: string[];
+  key: string;
   primitiveType?: PrimitiveType;
   originalType?: OriginalType;
   repetitionType: RepetitionType;
@@ -66,7 +68,7 @@ export interface FieldDefinition {
   dLevelMax: number;
   isNested?: boolean;
   fieldCount?: number;
-  fields?: Record<string, FieldDefinition>;
+  fields?: Record<string, ParquetField>;
 }
 
 export interface ParquetBuffer {
