@@ -6,6 +6,7 @@
         "import-name": false,
         "trailing-comma": false,
         "prefer-template": false,
+        "no-else-after-return": false,
         "max-line-length": [
             true,
             200

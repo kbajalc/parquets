@@ -1,6 +1,6 @@
 // tslint:disable-next-line:import-blacklist
 import { ParquetReader, ParquetSchema, ParquetWriter, ParquetWriterOptions } from '../src';
-// import snappyjs = require('snappyjs');
+import snappyjs = require('../src/snappy');
 
 const TEST_VTIME = Date.now();
 const TEST_NUM_ROWS = 10;
@@ -8,7 +8,7 @@ const TEST_NUM_ROWS = 10;
 // write a new file 'fruits.parquet'
 async function example() {
 
-  // snappyjs.compress(Buffer.from('Test string data'));
+  snappyjs.compress(Buffer.from('Test string data Test string data'));
 
   const opts: ParquetWriterOptions = {
     useDataPageV2: false,
