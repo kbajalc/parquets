@@ -9,9 +9,9 @@
             "isBackground": true,
             "presentation": {
                 "echo": true,
-                "reveal": "silent",
+                "reveal": "never",
                 "focus": false,
-                "panel": "shared"
+                "panel": "dedicated"
             },
             "problemMatcher": [
                 "$tsc-watch"
@@ -29,9 +29,9 @@
             "isBackground": true,
             "presentation": {
                 "echo": true,
-                "reveal": "silent",
+                "reveal": "never",
                 "focus": false,
-                "panel": "shared"
+                "panel": "dedicated"
             },
             "problemMatcher": [
                 "$tsc"

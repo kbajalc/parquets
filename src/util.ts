@@ -1,7 +1,6 @@
 import fs = require('fs');
 import { TBufferedTransport, TCompactProtocol, TFramedTransport } from 'thrift';
-import { TODO } from './declare';
-import { FileMetaData, PageHeader } from './gen/parquet_types';
+import { FileMetaData, PageHeader } from './gen';
 
 export interface WriteStreamOptions {
   flags?: string;
@@ -10,6 +9,10 @@ export interface WriteStreamOptions {
   mode?: number;
   autoClose?: boolean;
   start?: number;
+}
+
+class UFramedTransport extends TFramedTransport {
+  public readPos: number;
 }
 
 /**
@@ -35,7 +38,7 @@ export function decodeThrift(obj: any, buf: Buffer, offset?: number) {
     offset = 0;
   }
 
-  const transport = new TFramedTransport(buf);
+  const transport = new UFramedTransport(buf);
   transport.readPos = offset;
   const protocol = new TCompactProtocol(transport);
   obj.read(protocol);
@@ -48,7 +51,7 @@ export function decodeFileMetadata(buf: Buffer, offset?: number) {
     offset = 0;
   }
 
-  const transport = new TFramedTransport(buf);
+  const transport = new UFramedTransport(buf);
   transport.readPos = offset;
   const protocol = new TCompactProtocol(transport);
   const metadata = FileMetaData.read(protocol);
@@ -61,7 +64,7 @@ export function decodePageHeader(buf: Buffer, offset?: number) {
     offset = 0;
   }
 
-  const transport = new TFramedTransport(buf);
+  const transport = new UFramedTransport(buf);
   transport.readPos = offset;
   const protocol = new TCompactProtocol(transport);
   const pageHeader = PageHeader.read(protocol);
@@ -83,7 +86,7 @@ export function getBitWidth(val: number): number {
 /**
  * FIXME not ideal that this is linear
  */
-export function getThriftEnum(klass: Object, value: number | string): string {
+export function getThriftEnum(klass: any, value: number | string): string {
   for (const k in klass) {
     if (klass[k] === value) {
       return k;
@@ -118,7 +121,6 @@ export function fstat(filePath: string): Promise<fs.Stats> {
 
 export function fread(fd: number, position: number, length: number): Promise<Buffer> {
   const buffer = Buffer.alloc(length);
-
   return new Promise((resolve, reject) => {
     fs.read(fd, buffer, 0, length, position, (err, bytesRead, buf) => {
       if (err || bytesRead !== length) {
@@ -156,7 +158,7 @@ export function oswrite(os: fs.WriteStream, buf: Buffer): Promise<void> {
 
 export function osclose(os: fs.WriteStream): Promise<void> {
   return new Promise((resolve, reject) => {
-    (os as TODO).close((err) => {
+    (os as any).close((err: any) => {
       if (err) {
         reject(err);
       } else {
@@ -169,37 +171,29 @@ export function osclose(os: fs.WriteStream): Promise<void> {
 export function osopen(path: string, opts: WriteStreamOptions): Promise<fs.WriteStream> {
   return new Promise((resolve, reject) => {
     const outputStream = fs.createWriteStream(path, opts);
-
-    // tslint:disable-next-line:ter-prefer-arrow-callback
-    outputStream.on('open', function (fd) {
-      resolve(outputStream);
-    });
-
-    // tslint:disable-next-line:ter-prefer-arrow-callback
-    outputStream.on('error', function (err) {
-      reject(err);
-    });
+    outputStream.once('open', fd => resolve(outputStream));
+    outputStream.once('error', err => reject(err));
   });
 }
 
-export function fieldIndexOf(arr: any[][], elem: any[]): number {
+// Supports MQTT path wildcards
+// + all immediate children
+// # all descendents
+export function fieldIndexOf(arr: string[][], elem: string[]): number {
   for (let j = 0; j < arr.length; ++j) {
-    if (arr[j].length !== elem.length) {
-      continue;
-    }
-
+    if (arr[j].length > elem.length) continue;
     let m = true;
     for (let i = 0; i < elem.length; ++i) {
-      if (arr[j][i] !== elem[i]) {
-        m = false;
-        break;
-      }
+      if (arr[j][i] === elem[i] || arr[j][i] === '+' || arr[j][i] === '#') continue;
+      if (i >= arr[j].length && arr[j][arr[j].length - 1] === '#') continue;
+      m = false;
+      break;
     }
-
-    if (m) {
-      return j;
-    }
+    if (m) return j;
   }
-
   return -1;
+}
+
+export function load(name: string): any {
+  return (module || global as any)['require'](name);
 }

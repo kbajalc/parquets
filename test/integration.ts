@@ -1,13 +1,20 @@
+import 'jest';
+import { ParquetCompression } from '../src';
 import chai = require('chai');
-const assert = chai.assert;
 import fs = require('fs');
 import parquet = require('../src');
-import objectStream = require('object-stream');
+const assert = chai.assert;
+const objectStream = require('object-stream');
 
 const TEST_NUM_ROWS = 1000;
 const TEST_VTIME = Date.now();
 
-function mkTestSchema(opts) {
+interface TestOptions {
+  useDataPageV2: boolean;
+  compression: ParquetCompression;
+}
+
+function mkTestSchema(opts: TestOptions) {
   return new parquet.ParquetSchema({
     name: { type: 'UTF8', compression: opts.compression },
     // quantity:   { type: 'INT64', encoding: 'RLE', typeLength: 6, optional: true, compression: opts.compression },
@@ -21,17 +28,32 @@ function mkTestSchema(opts) {
     stock: {
       repeated: true,
       fields: {
-        quantity: { type: 'INT64', repeated: true },
+        quantity: { type: 'INT64', repeated: true, compression: opts.compression },
         warehouse: { type: 'UTF8', compression: opts.compression },
+        opts: {
+          optional: true,
+          fields: {
+            a: { type: 'INT32', compression: opts.compression },
+            b: { type: 'INT32', optional: true, compression: opts.compression }
+          }
+        },
+        tags: {
+          optional: true,
+          repeated: true,
+          fields: {
+            name: { type: 'UTF8', compression: opts.compression },
+            val: { type: 'UTF8', compression: opts.compression }
+          }
+        }
       }
     },
     colour: { type: 'UTF8', repeated: true, compression: opts.compression },
-    meta_json: { type: 'BSON', optional: true, compression: opts.compression },
+    meta_json: { type: 'BSON', optional: true, compression: opts.compression }
   });
 }
 
-function mkTestRows(opts?: any) {
-  const rows = [];
+function mkTestRows(opts?: TestOptions) {
+  const rows: any[] = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; ++i) {
     rows.push({
@@ -44,7 +66,7 @@ function mkTestRows(opts?: any) {
       inter: { months: 42, days: 23, milliseconds: 777 },
       stock: [
         { quantity: 10, warehouse: 'A' },
-        { quantity: 20, warehouse: 'B' }
+        { quantity: 20, warehouse: 'B', opts: { a: 1 }, tags: [{ name: 't', val: 'v' }] }
       ],
       colour: ['green', 'red']
     });
@@ -95,7 +117,7 @@ function mkTestRows(opts?: any) {
   return rows;
 }
 
-async function writeTestFile(opts) {
+async function writeTestFile(opts: TestOptions) {
   const schema = mkTestSchema(opts);
 
   const writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
@@ -117,11 +139,17 @@ async function readTestFile() {
   assert.deepEqual(reader.getMetadata(), { myuid: '420', fnord: 'dronf' });
 
   const schema = reader.getSchema();
-  assert.equal(schema.fieldList.length, 12);
+  assert.equal(schema.fieldList.length, 18);
   assert(schema.fields.name);
   assert(schema.fields.stock);
   assert(schema.fields.stock.fields.quantity);
   assert(schema.fields.stock.fields.warehouse);
+  assert(schema.fields.stock.fields.opts);
+  assert(schema.fields.stock.fields.opts.fields.a);
+  assert(schema.fields.stock.fields.opts.fields.b);
+  assert(schema.fields.stock.fields.tags);
+  assert(schema.fields.stock.fields.tags.fields.name);
+  assert(schema.fields.stock.fields.tags.fields.val);
   assert(schema.fields.price);
 
   {
@@ -151,7 +179,7 @@ async function readTestFile() {
     assert.equal(c.rLevelMax, 1);
     assert.equal(c.dLevelMax, 1);
     assert.equal(!!c.isNested, true);
-    assert.equal(c.fieldCount, 2);
+    assert.equal(c.fieldCount, 4);
   }
 
   {
@@ -185,6 +213,96 @@ async function readTestFile() {
   }
 
   {
+    const c = schema.fields.stock.fields.opts;
+    assert.equal(c.name, 'opts');
+    assert.equal(c.primitiveType, undefined);
+    assert.equal(c.originalType, undefined);
+    assert.deepEqual(c.path, ['stock', 'opts']);
+    assert.equal(c.repetitionType, 'OPTIONAL');
+    assert.equal(c.encoding, undefined);
+    assert.equal(c.compression, undefined);
+    assert.equal(c.rLevelMax, 1);
+    assert.equal(c.dLevelMax, 2);
+    assert.equal(!!c.isNested, true);
+    assert.equal(c.fieldCount, 2);
+  }
+
+  {
+    const c = schema.fields.stock.fields.opts.fields.a;
+    assert.equal(c.name, 'a');
+    assert.equal(c.primitiveType, 'INT32');
+    assert.equal(c.originalType, undefined);
+    assert.deepEqual(c.path, ['stock', 'opts', 'a']);
+    assert.equal(c.repetitionType, 'REQUIRED');
+    assert.equal(c.encoding, 'PLAIN');
+    assert.equal(c.compression, 'UNCOMPRESSED');
+    assert.equal(c.rLevelMax, 1);
+    assert.equal(c.dLevelMax, 2);
+    assert.equal(!!c.isNested, false);
+    assert.equal(c.fieldCount, undefined);
+  }
+
+  {
+    const c = schema.fields.stock.fields.opts.fields.b;
+    assert.equal(c.name, 'b');
+    assert.equal(c.primitiveType, 'INT32');
+    assert.equal(c.originalType, undefined);
+    assert.deepEqual(c.path, ['stock', 'opts', 'b']);
+    assert.equal(c.repetitionType, 'OPTIONAL');
+    assert.equal(c.encoding, 'PLAIN');
+    assert.equal(c.compression, 'UNCOMPRESSED');
+    assert.equal(c.rLevelMax, 1);
+    assert.equal(c.dLevelMax, 3);
+    assert.equal(!!c.isNested, false);
+    assert.equal(c.fieldCount, undefined);
+  }
+
+  {
+    const c = schema.fields.stock.fields.tags;
+    assert.equal(c.name, 'tags');
+    assert.equal(c.primitiveType, undefined);
+    assert.equal(c.originalType, undefined);
+    assert.deepEqual(c.path, ['stock', 'tags']);
+    assert.equal(c.repetitionType, 'REPEATED');
+    assert.equal(c.encoding, undefined);
+    assert.equal(c.compression, undefined);
+    assert.equal(c.rLevelMax, 2);
+    assert.equal(c.dLevelMax, 2);
+    assert.equal(!!c.isNested, true);
+    assert.equal(c.fieldCount, 2);
+  }
+
+  {
+    const c = schema.fields.stock.fields.tags.fields.name;
+    assert.equal(c.name, 'name');
+    assert.equal(c.primitiveType, 'BYTE_ARRAY');
+    assert.equal(c.originalType, 'UTF8');
+    assert.deepEqual(c.path, ['stock', 'tags', 'name']);
+    assert.equal(c.repetitionType, 'REQUIRED');
+    assert.equal(c.encoding, 'PLAIN');
+    assert.equal(c.compression, 'UNCOMPRESSED');
+    assert.equal(c.rLevelMax, 2);
+    assert.equal(c.dLevelMax, 2);
+    assert.equal(!!c.isNested, false);
+    assert.equal(c.fieldCount, undefined);
+  }
+
+  {
+    const c = schema.fields.stock.fields.tags.fields.val;
+    assert.equal(c.name, 'val');
+    assert.equal(c.primitiveType, 'BYTE_ARRAY');
+    assert.equal(c.originalType, 'UTF8');
+    assert.deepEqual(c.path, ['stock', 'tags', 'val']);
+    assert.equal(c.repetitionType, 'REQUIRED');
+    assert.equal(c.encoding, 'PLAIN');
+    assert.equal(c.compression, 'UNCOMPRESSED');
+    assert.equal(c.rLevelMax, 2);
+    assert.equal(c.dLevelMax, 2);
+    assert.equal(!!c.isNested, false);
+    assert.equal(c.fieldCount, undefined);
+  }
+
+  {
     const c = schema.fields.price;
     assert.equal(c.name, 'price');
     assert.equal(c.primitiveType, 'DOUBLE');
@@ -212,7 +330,7 @@ async function readTestFile() {
         inter: { months: 42, days: 23, milliseconds: 777 },
         stock: [
           { quantity: [10], warehouse: 'A' },
-          { quantity: [20], warehouse: 'B' }
+          { quantity: [20], warehouse: 'B', opts: { a: 1 }, tags: [{ name: 't', val: 'v' }] }
         ],
         colour: ['green', 'red']
       });
@@ -294,69 +412,69 @@ describe('Parquet', function () {
 
   describe('with DataPageHeaderV1', function () {
     it('write a test file', function () {
-      const opts = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts);
     });
 
     it('write a test file and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with GZIP compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'GZIP' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'GZIP' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with SNAPPY compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'SNAPPY' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'SNAPPY' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with LZO compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'LZO' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'LZO' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with BROTLI compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'BROTLI' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'BROTLI' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with LZ4 compression and then read it back', function () {
-      const opts = { useDataPageV2: false, compression: 'LZ4' };
+      const opts: TestOptions = { useDataPageV2: false, compression: 'LZ4' };
       return writeTestFile(opts).then(readTestFile);
     });
   });
 
   describe('with DataPageHeaderV2', function () {
     it('write a test file and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with GZIP compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'GZIP' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'GZIP' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with SNAPPY compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'SNAPPY' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'SNAPPY' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with LZO compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'LZO' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'LZO' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with BROTLI compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'BROTLI' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'BROTLI' };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write a test file with LZ4 compression and then read it back', function () {
-      const opts = { useDataPageV2: true, compression: 'LZ4' };
+      const opts: TestOptions = { useDataPageV2: true, compression: 'LZ4' };
       return writeTestFile(opts).then(readTestFile);
     });
 

@@ -1,10 +1,17 @@
-import { ParquetType, TODO } from '../declare';
+import { ParquetCodec } from '../declare';
+import { ParquetCodecKit } from './declare';
+import RLE = require('./rle');
+import PLAIN = require('./plain');
 
-export interface ParquetCodecImpl {
-  encodeValues(type: ParquetType, values: TODO, opts?: TODO): Buffer;
-  decodeValues(type: ParquetType, cursor: TODO, count: number, opts: TODO): any[];
-}
+export * from './declare';
 
-export const PLAIN = require('./plain');
-export const RLE = require('./rle');
-export const PARQUET_CODEC: Record<string, ParquetCodecImpl> = { RLE, PLAIN };
+export const PARQUET_CODEC: Record<ParquetCodec, ParquetCodecKit> = {
+  PLAIN: {
+    encodeValues: PLAIN.encodeValues,
+    decodeValues: PLAIN.decodeValues
+  },
+  RLE: {
+    encodeValues: RLE.encodeValues,
+    decodeValues: RLE.decodeValues
+  }
+};

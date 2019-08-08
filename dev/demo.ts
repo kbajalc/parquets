@@ -1,6 +1,6 @@
 // tslint:disable-next-line:import-blacklist
-import { ParquetCompression, ParquetReader, ParquetSchema, ParquetWriter } from '../src';
-import { ParquetWriterOptions } from '../src/writer';
+import { ParquetReader, ParquetSchema, ParquetWriter, ParquetWriterOptions } from '../src';
+// import snappyjs = require('snappyjs');
 
 const TEST_VTIME = Date.now();
 const TEST_NUM_ROWS = 10;
@@ -8,31 +8,56 @@ const TEST_NUM_ROWS = 10;
 // write a new file 'fruits.parquet'
 async function example() {
 
-  const opts: ParquetWriterOptions = { useDataPageV2: false, compression: 'SNAPPY' as ParquetCompression, pageSize: 12 };
+  // snappyjs.compress(Buffer.from('Test string data'));
+
+  const opts: ParquetWriterOptions = {
+    useDataPageV2: false,
+    // pageSize: 12
+  };
 
   const schema = new ParquetSchema({
-    name: { type: 'UTF8', compression: opts.compression },
+    name: { type: 'UTF8' },
     // parquet-mr actually doesnt support this
     // quantity: { type: 'INT64', encoding: 'RLE', typeLength: 6, optional: true, compression: opts.compression },
-    quantity: { type: 'INT64', optional: true, compression: opts.compression },
-    price: { type: 'DOUBLE', compression: opts.compression },
-    date: { type: 'TIMESTAMP_MICROS', compression: opts.compression },
-    day: { type: 'DATE', compression: opts.compression },
-    finger: { type: 'FIXED_LEN_BYTE_ARRAY', compression: opts.compression, typeLength: 5 },
-    inter: { type: 'INTERVAL', compression: opts.compression },
-    // TODO: Drill compatible
-    // -----------------------------
-    // stock: {
-    //   repeated: true,
-    //   fields: {
-    //     quantity: { type: 'INT64', repeated: true },
-    //     warehouse: { type: 'UTF8', /*compression: opts.compression*/ },
-    //   }
-    // },
+    quantity: { type: 'INT64', optional: true },
+    price: { type: 'DOUBLE' },
+    date: { type: 'TIMESTAMP_MICROS' },
+    day: { type: 'DATE' },
+    finger: { type: 'FIXED_LEN_BYTE_ARRAY', typeLength: 5 },
+    inter: { type: 'INTERVAL' },
+    // // TODO: Drill compatible
+    stock: {
+      repeated: true,
+      fields: {
+        quantity: { type: 'INT64', repeated: true },
+        warehouse: { type: 'UTF8' },
+        loc: {
+          optional: true,
+          fields: {
+            tags: {
+              optional: true,
+              fields: {
+                val: { type: 'UTF8' },
+                xyz: { type: 'INT32' }
+              }
+            },
+            lon: { type: 'FLOAT' },
+            lat: { type: 'FLOAT' },
+            zags: {
+              optional: true,
+              fields: {
+                zal: { type: 'UTF8' },
+                zyx: { type: 'INT32' }
+              }
+            },
+          }
+        }
+      }
+    },
     // colour: { type: 'UTF8', repeated: true, compression: opts.compression },
-    meta_json: { type: 'BSON', optional: true, compression: opts.compression },
-    compression: { type: 'UTF8', optional: true, compression: opts.compression }
-  });
+    // meta_json: { type: 'BSON', optional: true, compression: opts.compression },
+    // compression: { type: 'UTF8', optional: true, compression: opts.compression }
+  }).compress('SNAPPY');
 
   console.log(schema);
 
@@ -45,7 +70,8 @@ async function example() {
   console.log('Write: OK');
 
   const reader = await ParquetReader.openFile('fruits.parquet');
-  const cursor = reader.getCursor();
+  console.log(reader.getSchema());
+  const cursor = reader.getCursor(['name', ['stock', 'loc', '#']]);
   let record = null;
   while (record = await cursor.next()) {
     console.log(record);
@@ -55,7 +81,7 @@ async function example() {
 }
 
 function mkTestRows(opts?: any) {
-  const rows = [];
+  const rows: any[] = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; ++i) {
     rows.push({
@@ -68,9 +94,9 @@ function mkTestRows(opts?: any) {
       inter: { months: 42, days: 23, milliseconds: 777 },
       stock: [
         { quantity: 10, warehouse: 'A' },
-        { quantity: 20, warehouse: 'B' }
+        { quantity: 20, warehouse: 'B', loc: { lon: 6, lat: 9, tags: { val: 'abc', xyz: 77 } } }
       ],
-      colour: ['green', 'red'],
+      colour: ['green', 'red', 'blue'],
       compression: opts && opts.compression
     });
 
@@ -121,7 +147,7 @@ function mkTestRows(opts?: any) {
 }
 
 export function mkTestRowsNoRepeat(opts?: any) {
-  const rows = [];
+  const rows: any[] = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; ++i) {
     rows.push({

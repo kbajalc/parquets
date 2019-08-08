@@ -1,7 +1,15 @@
-import BSON = require("bson");
-import { ParquetType, TypeDef } from './declare';
+import BSON = require('bson');
+import { OriginalType, ParquetType, PrimitiveType } from './declare';
 
-export const PARQUET_LOGICAL_TYPES: Record<string, TypeDef> = {
+export interface ParquetTypeKit {
+  primitiveType: PrimitiveType;
+  originalType?: OriginalType;
+  typeLength?: number;
+  toPrimitive: Function;
+  fromPrimitive?: Function;
+}
+
+export const PARQUET_LOGICAL_TYPES: Record<ParquetType, ParquetTypeKit> = {
   BOOLEAN: {
     primitiveType: 'BOOLEAN',
     toPrimitive: toPrimitive_BOOLEAN,
