@@ -55,7 +55,7 @@ function mkTestSchema(opts: TestOptions) {
 function mkTestRows(opts?: TestOptions) {
   const rows: any[] = [];
 
-  for (let i = 0; i < TEST_NUM_ROWS; ++i) {
+  for (let i = 0; i < TEST_NUM_ROWS; i++) {
     rows.push({
       name: 'apples',
       quantity: 10,
@@ -319,7 +319,7 @@ async function readTestFile() {
 
   {
     const cursor = reader.getCursor();
-    for (let i = 0; i < TEST_NUM_ROWS; ++i) {
+    for (let i = 0; i < TEST_NUM_ROWS; i++) {
       assert.deepEqual(await cursor.next(), {
         name: 'apples',
         quantity: 10,
@@ -381,7 +381,7 @@ async function readTestFile() {
 
   {
     const cursor = reader.getCursor(['name']);
-    for (let i = 0; i < TEST_NUM_ROWS; ++i) {
+    for (let i = 0; i < TEST_NUM_ROWS; i++) {
       assert.deepEqual(await cursor.next(), { name: 'apples' });
       assert.deepEqual(await cursor.next(), { name: 'oranges' });
       assert.deepEqual(await cursor.next(), { name: 'kiwi' });
@@ -393,7 +393,7 @@ async function readTestFile() {
 
   {
     const cursor = reader.getCursor(['name', 'quantity']);
-    for (let i = 0; i < TEST_NUM_ROWS; ++i) {
+    for (let i = 0; i < TEST_NUM_ROWS; i++) {
       assert.deepEqual(await cursor.next(), { name: 'apples', quantity: 10 });
       assert.deepEqual(await cursor.next(), { name: 'oranges', quantity: 20 });
       assert.deepEqual(await cursor.next(), { name: 'kiwi' });

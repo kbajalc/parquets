@@ -1,7 +1,7 @@
 import { ParquetCompression } from './declare';
 import * as Util from './util';
 import zlib = require('zlib');
-import snappyjs = require('snappyjs');
+import snappyjs = require('./snappy');
 
 let brotli: any;
 let lzo: any;

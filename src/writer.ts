@@ -2,11 +2,11 @@ import { WriteStream } from 'fs';
 import { Transform } from 'stream';
 import { ParquetCodecOptions, PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
-import { FieldDefinition, ParquetBuffer, ParquetCodec, ParquetData, PrimitiveType } from './declare';
-// tslint:disable-next-line:max-line-length
-import { ColumnChunk, ColumnMetaData, CompressionCodec, ConvertedType, DataPageHeader, DataPageHeaderV2, Encoding, FieldRepetitionType, FileMetaData, KeyValue, PageHeader, PageType, RowGroup, SchemaElement, Type } from './gen';
+import { ParquetBuffer, ParquetCodec, ParquetData, ParquetField, PrimitiveType } from './declare';
 import { ParquetSchema } from './schema';
 import * as Shred from './shred';
+// tslint:disable-next-line:max-line-length
+import { ColumnChunk, ColumnMetaData, CompressionCodec, ConvertedType, DataPageHeader, DataPageHeaderV2, Encoding, FieldRepetitionType, FileMetaData, KeyValue, PageHeader, PageType, RowGroup, SchemaElement, Type } from './thrift';
 import * as Util from './util';
 import Int64 = require('node-int64');
 
@@ -328,7 +328,7 @@ function encodeValues(type: PrimitiveType, encoding: ParquetCodec, values: any[]
  * Encode a parquet data page
  */
 function encodeDataPage(
-  column: FieldDefinition,
+  column: ParquetField,
   data: ParquetData
 ): {
   header: PageHeader,
@@ -408,7 +408,7 @@ function encodeDataPage(
  * Encode a parquet data page (v2)
  */
 function encodeDataPageV2(
-  column: FieldDefinition,
+  column: ParquetField,
   data: ParquetData,
   rowCount: number
 ): {
@@ -485,7 +485,7 @@ function encodeDataPageV2(
  * Encode an array of values into a parquet column chunk
  */
 function encodeColumnChunk(
-  column: FieldDefinition,
+  column: ParquetField,
   buffer: ParquetBuffer,
   offset: number,
   opts: ParquetWriterOptions

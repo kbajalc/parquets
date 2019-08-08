@@ -2,8 +2,9 @@
 package
 package.lock
 build
-gen-node-js
+gen
 dump
 *.parquet
+data
 !lib
 !src

@@ -1,14 +1,9 @@
-// tslint:disable-next-line:import-blacklist
 import { ParquetReader, ParquetSchema, ParquetWriter, ParquetWriterOptions } from '../src';
-// import snappyjs = require('snappyjs');
 
 const TEST_VTIME = Date.now();
 const TEST_NUM_ROWS = 10;
 
-// write a new file 'fruits.parquet'
 async function example() {
-
-  // snappyjs.compress(Buffer.from('Test string data'));
 
   const opts: ParquetWriterOptions = {
     useDataPageV2: false,
@@ -83,7 +78,7 @@ async function example() {
 function mkTestRows(opts?: any) {
   const rows: any[] = [];
 
-  for (let i = 0; i < TEST_NUM_ROWS; ++i) {
+  for (let i = 0; i < TEST_NUM_ROWS; i++) {
     rows.push({
       name: 'apples',
       quantity: 10,
@@ -149,7 +144,7 @@ function mkTestRows(opts?: any) {
 export function mkTestRowsNoRepeat(opts?: any) {
   const rows: any[] = [];
 
-  for (let i = 0; i < TEST_NUM_ROWS; ++i) {
+  for (let i = 0; i < TEST_NUM_ROWS; i++) {
     rows.push({
       name: 'apples',
       quantity: 10,

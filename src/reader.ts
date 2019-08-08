@@ -1,10 +1,10 @@
 import { CursorBuffer, ParquetCodecOptions, PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
-import { FieldDefinition, ParquetBuffer, ParquetCodec, ParquetCompression, ParquetData, ParquetRecord, ParquetType, PrimitiveType, SchemaDefinition } from './declare';
-// tslint:disable-next-line:max-line-length
-import { ColumnChunk, CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageHeader, PageType, RowGroup, SchemaElement, Type } from './gen';
+import { ParquetBuffer, ParquetCodec, ParquetCompression, ParquetData, ParquetField, ParquetRecord, ParquetType, PrimitiveType, SchemaDefinition } from './declare';
 import { ParquetSchema } from './schema';
 import * as Shred from './shred';
+// tslint:disable-next-line:max-line-length
+import { ColumnChunk, CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageHeader, PageType, RowGroup, SchemaElement, Type } from './thrift';
 import * as Util from './util';
 // import Fs = require('fs');
 
@@ -298,7 +298,7 @@ function decodeValues(type: PrimitiveType, encoding: ParquetCodec, cursor: Curso
   return PARQUET_CODEC[encoding].decodeValues(type, cursor, count, opts);
 }
 
-function decodeDataPages(buffer: Buffer, column: FieldDefinition, compression: ParquetCompression): ParquetData {
+function decodeDataPages(buffer: Buffer, column: ParquetField, compression: ParquetCompression): ParquetData {
   const cursor: CursorBuffer = {
     buffer,
     offset: 0,
@@ -344,7 +344,7 @@ function decodeDataPages(buffer: Buffer, column: FieldDefinition, compression: P
   return data;
 }
 
-function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: FieldDefinition, compression: ParquetCompression): ParquetData {
+function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: ParquetField, compression: ParquetCompression): ParquetData {
   const cursorEnd = cursor.offset + header.compressed_page_size;
   const valueCount = header.data_page_header.num_values;
 
@@ -428,7 +428,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: FieldD
   let valueCountNonNull = 0;
   for (const dlvl of dLevels) {
     if (dlvl === column.dLevelMax) {
-      ++valueCountNonNull;
+      valueCountNonNull++;
     }
   }
 
@@ -460,7 +460,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: FieldD
   };
 }
 
-function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, column: FieldDefinition, compression: ParquetCompression): ParquetData {
+function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, column: ParquetField, compression: ParquetCompression): ParquetData {
   const cursorEnd = cursor.offset + header.compressed_page_size;
 
   const valueCount = header.data_page_header_v2.num_values;
