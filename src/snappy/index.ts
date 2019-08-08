@@ -30,8 +30,8 @@ function isBuffer(object: any) {
 const TYPE_ERROR_MSG = 'Argument compressed must be type of ArrayBuffer, Buffer, or Uint8Array';
 
 export function uncompress(compressed: Buffer): Buffer;
-export function uncompress(compressed: ArrayBuffer): ArrayBuffer;
 export function uncompress(compressed: Uint8Array): Uint8Array;
+export function uncompress(compressed: ArrayBuffer): ArrayBuffer;
 export function uncompress(compressed: any) {
   if (!isUint8Array(compressed) && !isArrayBuffer(compressed) && !isBuffer(compressed)) {
     throw new TypeError(TYPE_ERROR_MSG);
@@ -67,8 +67,8 @@ export function uncompress(compressed: any) {
 }
 
 export function compress(uncompressed: Buffer): Buffer;
-export function compress(uncompressed: ArrayBuffer): ArrayBuffer;
 export function compress(uncompressed: Uint8Array): Uint8Array;
+export function compress(uncompressed: ArrayBuffer): ArrayBuffer;
 export function compress(uncompressed: any) {
   if (!isUint8Array(uncompressed) && !isArrayBuffer(uncompressed) && !isBuffer(uncompressed)) {
     throw new TypeError(TYPE_ERROR_MSG);

@@ -9,11 +9,11 @@ declare module 'int53' {
   declare function writeUInt64LE(value: number, buffer: Buffer, offset?: number): void;
 }
 
-declare module 'snappyjs' {
-  declare function compress(uncompressed: Buffer): Buffer;
-  declare function compress(uncompressed: ArrayBuffer): ArrayBuffer;
-  declare function compress(uncompressed: Uint8Array): Uint8Array;
-  declare function uncompress(compressed: Buffer): Buffer;
-  declare function uncompress(compressed: ArrayBuffer): ArrayBuffer;
-  declare function uncompress(compressed: Uint8Array): Uint8Array;
-}
+// declare module 'snappyjs' {
+//   declare function compress(uncompressed: Buffer): Buffer;
+//   declare function compress(uncompressed: ArrayBuffer): ArrayBuffer;
+//   declare function compress(uncompressed: Uint8Array): Uint8Array;
+//   declare function uncompress(compressed: Buffer): Buffer;
+//   declare function uncompress(compressed: ArrayBuffer): ArrayBuffer;
+//   declare function uncompress(compressed: Uint8Array): Uint8Array;
+// }
