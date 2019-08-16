@@ -1,6 +1,9 @@
-import { ParquetBuffer, ParquetData, ParquetField, ParquetRecord } from '../src/declare';
-import { ParquetSchema } from '../src/schema';
-import * as Types from '../src/types';
+import { ParquetBuffer, ParquetData, ParquetType } from '../src';
+import { ParquetField, ParquetSchema } from '../src/schema';
+
+export interface ParquetRecord {
+  [key: string]: any;
+}
 
 /**
  * 'Shred' a record into a list of <value, repetition_level, definition_level>
@@ -133,7 +136,7 @@ function shredRecordInternal(
           rlvl_i,
           field.dLevelMax);
       } else {
-        data[field.path.join()].values.push(Types.toPrimitive(fieldType, values[i]));
+        data[field.path.join()].values.push(ParquetType.toPrimitive(fieldType, values[i]));
         data[field.path.join()].rlevels.push(rlvl_i);
         data[field.path.join()].dlevels.push(field.dLevelMax);
         data[field.path.join()].count += 1;
@@ -186,7 +189,7 @@ export function materializeRecords(schema: ParquetSchema, buffer: ParquetBuffer)
 
       let value = null;
       if (dLevel === field.dLevelMax) {
-        value = Types.fromPrimitive(
+        value = ParquetType.fromPrimitive(
           field.originalType || field.primitiveType,
           values.next().value);
       }

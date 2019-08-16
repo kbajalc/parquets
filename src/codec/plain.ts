@@ -1,5 +1,5 @@
-import { PrimitiveType } from '../declare';
-import { CursorBuffer, ParquetCodecOptions } from './declare';
+import { PrimitiveType } from '../types';
+import { CursorBuffer, ParquetCodecOptions } from './types';
 import INT53 = require('int53');
 
 export function encodeValues(type: PrimitiveType, values: any[], opts?: ParquetCodecOptions): Buffer {
@@ -203,7 +203,7 @@ function encodeValues_FIXED_LEN_BYTE_ARRAY(values: Buffer[], opts: ParquetCodecO
   for (let i = 0; i < values.length; i++) {
     values[i] = Buffer.from(values[i]);
     if (values[i].length !== opts.typeLength) {
-      throw new Error(`invalid value for FIXED_LEN_BYTE_ARRAY: ${values[i]}`);
+      throw new Error(`invalid length for FIXED_LEN_BYTE_ARRAY: ${values[i].length}`);
     }
   }
   return Buffer.concat(values);

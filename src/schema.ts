@@ -1,8 +1,54 @@
-import { PARQUET_CODEC } from './codec';
-import { PARQUET_COMPRESSION_METHODS } from './compression';
-import { FieldDefinition, ParquetBuffer, ParquetCompression, ParquetField, ParquetRecord, RepetitionType, SchemaDefinition } from './declare';
-import { materializeRecords, shredBuffer, shredRecord } from './shred';
-import { PARQUET_LOGICAL_TYPES } from './types';
+import { ParquetCodec } from './codec';
+import { ParquetCompression } from './compression';
+import { ParquetBuffer, ParquetRecord } from './shred';
+import { OriginalType, ParquetType, PrimitiveType } from './types';
+
+export type RepetitionType = 'REQUIRED' | 'OPTIONAL' | 'REPEATED';
+
+export interface SchemaDefinition {
+  [string: string]: FieldDefinition;
+}
+
+export interface FieldDefinition {
+  type?: ParquetType;
+  typeLength?: number;
+  encoding?: ParquetCodec;
+  compression?: ParquetCompression;
+  optional?: boolean;
+  repeated?: boolean;
+  scale?: number;
+  precision?: number;
+  fieldId?: number;
+  fields?: SchemaDefinition;
+  list?: {
+    elementName?: string;
+    element: FieldDefinition;
+  };
+  map?: {
+    key: FieldDefinition;
+    value: FieldDefinition;
+  };
+}
+
+export interface ParquetField {
+  name: string;
+  path: string[];
+  key: string;
+  primitiveType?: PrimitiveType;
+  originalType?: OriginalType;
+  repetitionType: RepetitionType;
+  typeLength?: number;
+  scale?: number;
+  precision?: number;
+  fieldId?: number;
+  encoding?: ParquetCodec;
+  compression?: ParquetCompression;
+  rLevelMax: number;
+  dLevelMax: number;
+  isNested?: boolean;
+  fieldCount?: number;
+  fields?: Record<string, ParquetField>;
+}
 
 /**
  * A parquet file schema
@@ -64,12 +110,12 @@ export class ParquetSchema {
     return branch;
   }
 
-  shredRecord(record: ParquetRecord, buffer: ParquetBuffer): void {
-    shredRecord(this, record, buffer);
+  shredRecord(record: any, buffer: ParquetBuffer): void {
+    ParquetRecord.shred(this, record, buffer);
   }
 
-  materializeRecords(buffer: ParquetBuffer): ParquetRecord[] {
-    return materializeRecords(this, buffer);
+  materializeRecords(buffer: ParquetBuffer): any[] {
+    return ParquetRecord.materialize(this, buffer);
   }
 
   compress(type: ParquetCompression): this {
@@ -79,7 +125,7 @@ export class ParquetSchema {
   }
 
   buffer(): ParquetBuffer {
-    return shredBuffer(this);
+    return ParquetBuffer.create(this);
   }
 }
 
@@ -105,6 +151,33 @@ function buildFields(
   for (const name in schema) {
     const opts = schema[name];
 
+    if (opts.list) {
+      opts.type = 'LIST';
+      opts.fields = {
+        list: {
+          repeated: true,
+          fields: {
+            [opts.list.elementName || 'element']: opts.list.element
+          }
+        }
+      };
+    }
+
+    if (opts.map) {
+      opts.type = 'MAP';
+      delete opts.map.key.optional;
+      opts.fields = {
+        map: {
+          type: 'MAP_KEY_VALUE',
+          repeated: true,
+          fields: {
+            key: opts.map.key,
+            value: opts.map.value
+          }
+        }
+      };
+    }
+
     /* field repetition type */
     const required = !opts.optional;
     const repeated = !!opts.repeated;
@@ -122,11 +195,14 @@ function buildFields(
       if (required) dLevelMax++;
     }
 
+    const typeDef = ParquetType.get(opts.type);
+
     /* nested field */
     if (opts.fields) {
       const cpath = path.concat([name]);
       fieldList[name] = {
         name,
+        originalType: typeDef ? typeDef.originalType : null,
         path: cpath,
         key: cpath.join(),
         repetitionType,
@@ -144,19 +220,58 @@ function buildFields(
       continue;
     }
 
-    const typeDef: any = PARQUET_LOGICAL_TYPES[opts.type];
     if (!typeDef) {
       throw new Error(`invalid parquet type: ${opts.type}`);
     }
 
     opts.encoding = opts.encoding || 'PLAIN';
-    if (!(opts.encoding in PARQUET_CODEC)) {
+    if (!ParquetCodec.is(opts.encoding)) {
       throw new Error(`unsupported parquet encoding: ${opts.encoding}`);
     }
 
     opts.compression = opts.compression || 'UNCOMPRESSED';
-    if (!(opts.compression in PARQUET_COMPRESSION_METHODS)) {
+    if (!ParquetCompression.is(opts.compression)) {
       throw new Error(`unsupported compression method: ${opts.compression}`);
+    }
+
+    let precision = opts.precision;
+    let scale = opts.scale;
+    let typeLength = opts.typeLength;
+    if (typeDef.originalType === 'DECIMAL') {
+      scale = scale || 0;
+      switch (typeDef.primitiveType) {
+        case 'INT32':
+          precision = opts.precision === undefined ? ParquetType.MAX_PRECISION_INT32 : opts.precision;
+          if (precision > ParquetType.MAX_PRECISION_INT32) {
+            throw new TypeError('invalid precision digits for INT32: ' + precision);
+          }
+          break;
+        case 'INT64':
+          precision = opts.precision === undefined ? ParquetType.MAX_PRECISION_INT64 : opts.precision;
+          if (precision > ParquetType.MAX_PRECISION_INT64) {
+            throw new TypeError('invalid precision digits for INT64: ' + precision);
+          }
+          break;
+        case 'BYTE_ARRAY':
+          precision = opts.precision === undefined ? ParquetType.MAX_PRECISION_INT64 : opts.precision;
+          break;
+        case 'FIXED_LEN_BYTE_ARRAY':
+          if (!typeLength && !precision) {
+            precision = ParquetType.MAX_PRECISION_INT64;
+            typeLength = 8;
+          } else if (!typeLength) {
+            typeLength = ParquetType.precisionBytes(precision);
+          } else if (!precision) {
+            precision = ParquetType.maxPrecision(typeLength);
+          } else if (precision > ParquetType.maxPrecision(typeLength)) {
+            throw new TypeError('invalid precision digits for BINARY: ' + precision);
+          }
+          break;
+        default: throw new TypeError('unsupport DECIMAL primitive type: ' + typeDef.primitiveType);
+      }
+      if (scale > precision) {
+        throw new TypeError('invalid scale: ' + opts.scale);
+      }
     }
 
     /* add to schema */
@@ -168,9 +283,12 @@ function buildFields(
       path: cpath,
       key: cpath.join(),
       repetitionType,
+      scale,
+      precision,
+      fieldId: opts.fieldId,
       encoding: opts.encoding,
       compression: opts.compression,
-      typeLength: opts.typeLength || typeDef.typeLength,
+      typeLength: typeLength || typeDef.typeLength,
       rLevelMax,
       dLevelMax
     };

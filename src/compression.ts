@@ -1,4 +1,3 @@
-import { ParquetCompression } from './declare';
 import * as Util from './util';
 import zlib = require('zlib');
 import snappyjs = require('./snappy');
@@ -7,12 +6,41 @@ let brotli: any;
 let lzo: any;
 let lz4js: any;
 
-export interface ParquetCompressionKit {
+export type ParquetCompression = 'UNCOMPRESSED' | 'GZIP' | 'SNAPPY' | 'LZO' | 'BROTLI' | 'LZ4';
+
+export namespace ParquetCompression {
+
+  export function is(name: string) {
+    return name in PARQUET_COMPRESSION_METHODS;
+  }
+
+  /**
+   * Deflate a value using compression method `method`
+   */
+  export function deflate(method: ParquetCompression, value: Buffer): Buffer {
+    if (!(method in PARQUET_COMPRESSION_METHODS)) {
+      throw new Error('invalid compression method: ' + method);
+    }
+    return PARQUET_COMPRESSION_METHODS[method].deflate(value);
+  }
+
+  /**
+   * Inflate a value using compression method `method`
+   */
+  export function inflate(method: ParquetCompression, value: Buffer, size: number): Buffer {
+    if (!(method in PARQUET_COMPRESSION_METHODS)) {
+      throw new Error('invalid compression method: ' + method);
+    }
+    return PARQUET_COMPRESSION_METHODS[method].inflate(value, size);
+  }
+}
+
+interface ParquetCompressionKit {
   deflate: (value: Buffer) => Buffer;
   inflate: (value: Buffer, size: number) => Buffer;
 }
 
-export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, ParquetCompressionKit> = {
+const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, ParquetCompressionKit> = {
   UNCOMPRESSED: {
     deflate: deflate_identity,
     inflate: inflate_identity
@@ -38,17 +66,6 @@ export const PARQUET_COMPRESSION_METHODS: Record<ParquetCompression, ParquetComp
     inflate: inflate_lz4
   }
 };
-
-/**
- * Deflate a value using compression method `method`
- */
-export function deflate(method: ParquetCompression, value: Buffer): Buffer {
-  if (!(method in PARQUET_COMPRESSION_METHODS)) {
-    throw new Error('invalid compression method: ' + method);
-  }
-
-  return PARQUET_COMPRESSION_METHODS[method].deflate(value);
-}
 
 function deflate_identity(value: Buffer): Buffer {
   return value;
@@ -89,17 +106,6 @@ function deflate_lz4(value: Buffer): Buffer {
   } catch (err) {
     throw err;
   }
-}
-
-/**
- * Inflate a value using compression method `method`
- */
-export function inflate(method: ParquetCompression, value: Buffer, size: number): Buffer {
-  if (!(method in PARQUET_COMPRESSION_METHODS)) {
-    throw new Error('invalid compression method: ' + method);
-  }
-
-  return PARQUET_COMPRESSION_METHODS[method].inflate(value, size);
 }
 
 function inflate_identity(value: Buffer): Buffer {

@@ -1,4 +1,4 @@
-import { PrimitiveType } from '../declare';
+import { PrimitiveType } from '../types';
 
 export interface CursorBuffer {
   buffer: Buffer;

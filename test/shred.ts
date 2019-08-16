@@ -1,7 +1,6 @@
 import chai = require('chai');
 const assert = chai.assert;
 import parquet = require('../src');
-import { ParquetBuffer } from '../src/declare';
 
 // tslint:disable:ter-prefer-arrow-callback
 describe('ParquetShredder', function () {
@@ -13,11 +12,11 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buf: ParquetBuffer = {};
+    const buf: parquet.ParquetBuffer = {};
 
     {
       const rec = { name: 'apple', quantity: 10, price: 23.5 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     const colData = buf.columnData;
@@ -40,21 +39,21 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buf: ParquetBuffer = {};
+    const buf: parquet.ParquetBuffer = {};
 
     {
       const rec = { name: 'apple', quantity: 10, price: 23.5 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'orange', quantity: 20, price: 17.1 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'banana', quantity: 15, price: 42 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     const colData = buf.columnData;
@@ -77,21 +76,21 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buf: ParquetBuffer = {};
+    const buf: parquet.ParquetBuffer = {};
 
     {
       const rec = { name: 'apple', quantity: 10, price: 23.5 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'orange', price: 17.1 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'banana', quantity: 15, price: 42 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     const colData = buf.columnData;
@@ -114,21 +113,21 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buf: ParquetBuffer = {};
+    const buf: parquet.ParquetBuffer = {};
 
     {
       const rec = { name: 'apple', price: 23.5, colours: ['red', 'green'] };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'orange', price: 17.1, colours: ['orange'] };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'banana', price: 42, colours: ['yellow'] };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     const colData = buf.columnData;
@@ -159,16 +158,16 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buf: ParquetBuffer = {};
+    const buf: parquet.ParquetBuffer = {};
 
     {
       const rec = { name: 'apple', stock: { quantity: 10, warehouse: 'A' }, price: 23.5 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'banana', stock: { quantity: 20, warehouse: 'B' }, price: 42.0 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     const colData = buf.columnData;
@@ -199,16 +198,16 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buf: ParquetBuffer = {};
+    const buf: parquet.ParquetBuffer = {};
 
     {
       const rec = { name: 'apple', stock: { quantity: 10, warehouse: 'A' }, price: 23.5 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'banana', stock: { warehouse: 'B' }, price: 42.0 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     const colData = buf.columnData;
@@ -240,21 +239,21 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buf: ParquetBuffer = {};
+    const buf: parquet.ParquetBuffer = {};
 
     {
       const rec = { name: 'apple', stock: { quantity: 10, warehouse: 'A' }, price: 23.5 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'orange', price: 17.0 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'banana', stock: { warehouse: 'B' }, price: 42.0 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     const colData = buf.columnData;
@@ -285,21 +284,21 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buf: ParquetBuffer = {};
+    const buf: parquet.ParquetBuffer = {};
 
     {
       const rec = { name: 'apple', stock: { quantity: 10, warehouse: 'A' }, price: 23.5 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'orange', stock: { quantity: [50, 75], warehouse: 'B' }, price: 17.0 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'banana', stock: { warehouse: 'C' }, price: 42.0 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     const colData = buf.columnData;
@@ -331,26 +330,26 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buf: ParquetBuffer = {};
+    const buf: parquet.ParquetBuffer = {};
 
     {
       const rec = { name: 'apple', stock: [{ quantity: 10, warehouse: 'A' }, { quantity: 20, warehouse: 'B' }], price: 23.5 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'orange', stock: { quantity: [50, 75], warehouse: 'X' }, price: 17.0 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'kiwi', price: 99.0 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     {
       const rec = { name: 'banana', stock: { warehouse: 'C' }, price: 42.0 };
-      parquet.ParquetShredder.shredRecord(schema, rec, buf);
+      parquet.ParquetRecord.shred(schema, rec, buf);
     }
 
     const colData = buf.columnData;
@@ -375,7 +374,7 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE', repeated: true },
     });
 
-    const buffer: ParquetBuffer = {
+    const buffer: parquet.ParquetBuffer = {
       rowCount: 4,
       columnData: {}
     };
@@ -399,7 +398,7 @@ describe('ParquetShredder', function () {
       count: 6
     };
 
-    const records = parquet.ParquetShredder.materializeRecords(schema, buffer);
+    const records = parquet.ParquetRecord.materialize(schema, buffer);
 
     assert.equal(records.length, 4);
 
@@ -433,7 +432,7 @@ describe('ParquetShredder', function () {
       price: { type: 'DOUBLE' },
     });
 
-    const buffer: ParquetBuffer = {
+    const buffer: parquet.ParquetBuffer = {
       rowCount: 4,
       columnData: {}
     };
@@ -476,7 +475,7 @@ describe('ParquetShredder', function () {
       count: 4
     };
 
-    const records = parquet.ParquetShredder.materializeRecords(schema, buffer);
+    const records = parquet.ParquetRecord.materialize(schema, buffer);
 
     assert.equal(records.length, 4);
 
@@ -507,7 +506,7 @@ describe('ParquetShredder', function () {
       }
     });
 
-    const buffer: ParquetBuffer = {
+    const buffer: parquet.ParquetBuffer = {
       rowCount: 1,
       columnData: {}
     };
@@ -535,7 +534,7 @@ describe('ParquetShredder', function () {
       count: 1
     };
 
-    const records = parquet.ParquetShredder.materializeRecords(schema, buffer);
+    const records = parquet.ParquetRecord.materialize(schema, buffer);
 
     assert.equal(records.length, 1);
 

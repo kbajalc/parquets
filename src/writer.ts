@@ -1,10 +1,9 @@
 import { WriteStream } from 'fs';
 import { Transform } from 'stream';
-import { ParquetCodecOptions, PARQUET_CODEC } from './codec';
-import * as Compression from './compression';
-import { ParquetBuffer, ParquetCodec, ParquetData, ParquetField, PrimitiveType } from './declare';
-import { ParquetSchema } from './schema';
-import * as Shred from './shred';
+import { ParquetCodec } from './codec';
+import { ParquetCompression } from './compression';
+import { ParquetField, ParquetSchema } from './schema';
+import { ParquetBuffer, ParquetData, ParquetRecord } from './shred';
 // tslint:disable-next-line:max-line-length
 import { ColumnChunk, ColumnMetaData, CompressionCodec, ConvertedType, DataPageHeader, DataPageHeaderV2, Encoding, FieldRepetitionType, FileMetaData, KeyValue, PageHeader, PageType, RowGroup, SchemaElement, Type } from './thrift';
 import * as Util from './util';
@@ -116,7 +115,7 @@ export class ParquetWriter<T> {
     if (this.closed) {
       throw new Error('writer was closed');
     }
-    Shred.shredRecord(this.schema, row, this.rowBuffer);
+    ParquetRecord.shred(this.schema, row, this.rowBuffer);
     if (this.rowBuffer.rowCount >= this.rowGroupSize) {
       await this.envelopeWriter.writeRowGroup(this.rowBuffer);
       this.rowBuffer = {};
@@ -315,16 +314,6 @@ export class ParquetTransformer<T> extends Transform {
 }
 
 /**
- * Encode a consecutive array of data using one of the parquet encodings
- */
-function encodeValues(type: PrimitiveType, encoding: ParquetCodec, values: any[], opts: ParquetCodecOptions) {
-  if (!(encoding in PARQUET_CODEC)) {
-    throw new Error(`invalid encoding: ${encoding}`);
-  }
-  return PARQUET_CODEC[encoding].encodeValues(type, values, opts);
-}
-
-/**
  * Encode a parquet data page
  */
 function encodeDataPage(
@@ -338,7 +327,7 @@ function encodeDataPage(
   /* encode repetition and definition levels */
   let rLevelsBuf = Buffer.alloc(0);
   if (column.rLevelMax > 0) {
-    rLevelsBuf = encodeValues(
+    rLevelsBuf = ParquetCodec.encodeValues(
       PARQUET_RDLVL_TYPE,
       PARQUET_RDLVL_ENCODING,
       data.rlevels,
@@ -351,7 +340,7 @@ function encodeDataPage(
 
   let dLevelsBuf = Buffer.alloc(0);
   if (column.dLevelMax > 0) {
-    dLevelsBuf = encodeValues(
+    dLevelsBuf = ParquetCodec.encodeValues(
       PARQUET_RDLVL_TYPE,
       PARQUET_RDLVL_ENCODING,
       data.dlevels,
@@ -363,7 +352,7 @@ function encodeDataPage(
   }
 
   /* encode values */
-  const valuesBuf = encodeValues(
+  const valuesBuf = ParquetCodec.encodeValues(
     column.primitiveType,
     column.encoding,
     data.values,
@@ -377,7 +366,7 @@ function encodeDataPage(
   ]);
 
   // compression = column.compression === 'UNCOMPRESSED' ? (compression || 'UNCOMPRESSED') : column.compression;
-  const compressedBuf = Compression.deflate(column.compression, dataBuf);
+  const compressedBuf = ParquetCompression.deflate(column.compression, dataBuf);
 
   /* build page header */
   const header = new PageHeader({
@@ -417,7 +406,7 @@ function encodeDataPageV2(
   page: Buffer
 } {
   /* encode values */
-  const valuesBuf = encodeValues(
+  const valuesBuf = ParquetCodec.encodeValues(
     column.primitiveType,
     column.encoding,
     data.values, {
@@ -427,12 +416,12 @@ function encodeDataPageV2(
   );
 
   // compression = column.compression === 'UNCOMPRESSED' ? (compression || 'UNCOMPRESSED') : column.compression;
-  const compressedBuf = Compression.deflate(column.compression, valuesBuf);
+  const compressedBuf = ParquetCompression.deflate(column.compression, valuesBuf);
 
   /* encode repetition and definition levels */
   let rLevelsBuf = Buffer.alloc(0);
   if (column.rLevelMax > 0) {
-    rLevelsBuf = encodeValues(
+    rLevelsBuf = ParquetCodec.encodeValues(
       PARQUET_RDLVL_TYPE,
       PARQUET_RDLVL_ENCODING,
       data.rlevels, {
@@ -444,7 +433,7 @@ function encodeDataPageV2(
 
   let dLevelsBuf = Buffer.alloc(0);
   if (column.dLevelMax > 0) {
-    dLevelsBuf = encodeValues(
+    dLevelsBuf = ParquetCodec.encodeValues(
       PARQUET_RDLVL_TYPE,
       PARQUET_RDLVL_ENCODING,
       data.dlevels, {
@@ -627,6 +616,9 @@ function encodeFooter(schema: ParquetSchema, rowCount: number, rowGroups: RowGro
     }
 
     schemaElem.type_length = field.typeLength;
+    schemaElem.scale = field.scale;
+    schemaElem.precision = field.precision;
+    schemaElem.field_id = field.fieldId;
 
     metadata.schema.push(schemaElem);
   }

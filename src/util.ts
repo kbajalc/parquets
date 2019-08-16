@@ -176,7 +176,7 @@ export function osopen(path: string, opts: WriteStreamOptions): Promise<fs.Write
   });
 }
 
-// Supports MQTT path wildcards
+// Supports MQTT style path wildcards
 // + all immediate children
 // # all descendents
 export function fieldIndexOf(arr: string[][], elem: string[]): number {
@@ -196,4 +196,8 @@ export function fieldIndexOf(arr: string[][], elem: string[]): number {
 
 export function load(name: string): any {
   return (module || global as any)['require'](name);
+}
+
+export function push(target: any[], append: any[]): number {
+  return Array.prototype.push.apply(target, append);
 }

@@ -1,7 +1,7 @@
 import chai = require('chai');
 const assert = chai.assert;
 import parquet = require('../src');
-import { ParquetBuffer } from '../src/declare';
+import { ParquetBuffer } from '../src/shred';
 
 // tslint:disable:ter-prefer-arrow-callback
 describe('ParquetShredder', function () {

@@ -1,7 +1,7 @@
 {
   "name": "parquets",
   "description": "TypeScript implementation of the Parquet file format, based on parquet.js",
-  "version": "0.10.6",
+  "version": "0.10.7",
   "upstream": "0.10.1",
   "homepage": "https://github.com/kbajalc/parquets",
   "author": "kbajalc@gmail.com",
@@ -52,8 +52,8 @@
   "devDependencies": {
     "@creditkarma/thrift-typescript": "^3.7.2",
     "@types/bson": "^4.0.0",
-    "@types/chai": "^4.1.7",
-    "@types/debug": "^4.1.4",
+    "@types/chai": "^4.2.0",
+    "@types/debug": "^4.1.5",
     "@types/jest": "^24.0.17",
     "@types/mocha": "^5.2.7",
     "@types/node": "^10.14.15",

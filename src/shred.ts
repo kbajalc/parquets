@@ -1,19 +1,46 @@
-import { ParquetBuffer, ParquetData, ParquetField, ParquetRecord } from './declare';
-import { ParquetSchema } from './schema';
-import * as Types from './types';
+import { ParquetField, ParquetSchema } from './schema';
+import { ParquetType } from './types';
+import * as Util from './util';
 
-export function shredBuffer(schema: ParquetSchema): ParquetBuffer {
-  const columnData: Record<string, ParquetData> = {};
-  for (const field of schema.fieldList) {
-    columnData[field.key] = {
-      dlevels: [],
-      rlevels: [],
-      values: [],
-      count: 0
-    };
-  }
-  return { rowCount: 0, columnData };
+export interface ParquetRecord {
+  [key: string]: any;
 }
+
+export namespace ParquetRecord {
+  export const shred = shredRecord;
+  export const materialize = materializeRecords;
+}
+
+export interface ParquetData {
+  dlevels: number[];
+  rlevels: number[];
+  values: any[];
+  count: number;
+}
+
+export interface ParquetBuffer {
+  rowCount?: number;
+  columnData?: Record<string, ParquetData>;
+}
+
+export namespace ParquetBuffer {
+  export function create(schema: ParquetSchema): ParquetBuffer {
+    const columnData: Record<string, ParquetData> = {};
+    for (const field of schema.fieldList) {
+      columnData[field.key] = {
+        dlevels: [],
+        rlevels: [],
+        values: [],
+        count: 0
+      };
+    }
+    return { rowCount: 0, columnData };
+  }
+}
+
+const OBJ_TAG = Symbol('object');
+const MAP_TAG = Symbol('map');
+const LIST_TAG = Symbol('list');
 
 /**
  * 'Shred' a record into a list of <value, repetition_level, definition_level>
@@ -37,9 +64,9 @@ export function shredBuffer(schema: ParquetSchema): ParquetBuffer {
  *      rowCount: X,
  *   }
  */
-export function shredRecord(schema: ParquetSchema, record: any, buffer: ParquetBuffer): void {
+function shredRecord(schema: ParquetSchema, record: any, buffer: ParquetBuffer): void {
   /* shred the record, this may raise an exception */
-  const data = shredBuffer(schema).columnData;
+  const data = ParquetBuffer.create(schema).columnData;
 
   shredRecordFields(schema.fields, record, data, 0, 0);
 
@@ -51,9 +78,9 @@ export function shredRecord(schema: ParquetSchema, record: any, buffer: ParquetB
   }
   buffer.rowCount += 1;
   for (const field of schema.fieldList) {
-    Array.prototype.push.apply(buffer.columnData[field.key].rlevels, data[field.key].rlevels);
-    Array.prototype.push.apply(buffer.columnData[field.key].dlevels, data[field.key].dlevels);
-    Array.prototype.push.apply(buffer.columnData[field.key].values, data[field.key].values);
+    Util.push(buffer.columnData[field.key].rlevels, data[field.key].rlevels);
+    Util.push(buffer.columnData[field.key].dlevels, data[field.key].dlevels);
+    Util.push(buffer.columnData[field.key].values, data[field.key].values);
     buffer.columnData[field.key].count += data[field.key].count;
   }
 }
@@ -67,6 +94,30 @@ function shredRecordFields(
 ) {
   for (const name in fields) {
     const field = fields[name];
+    const val = record && record[name];
+    if (val && field.originalType === 'MAP') {
+      if (val instanceof Map) {
+        const map: any[] = [];
+        val.forEach((value, key) => map.push({ key, value }));
+        // tslint:disable-next-line: no-parameter-reassignment
+        record = { ...record, [name]: { map } };
+      } else {
+        const keys = Object.keys(val);
+        if (keys.length > 1 || keys[0] !== 'map') {
+          const map: any[] = [];
+          keys.forEach(key => map.push({ key, value: val[key] }));
+          // tslint:disable-next-line: no-parameter-reassignment
+          record = { ...record, [name]: { map } };
+        }
+      }
+    }
+
+    if (field.originalType === 'LIST' && val instanceof Array) {
+      const element = Object.keys(field.fields.list.fields)[0];
+      const list = val.map(v => ({ [element]: v }));
+      // tslint:disable-next-line: no-parameter-reassignment
+      record = { ...record, [name]: { list } };
+    }
 
     // fetch values
     let values = [];
@@ -113,13 +164,16 @@ function shredRecordFields(
           rlvl,
           field.dLevelMax);
       } else {
+        const value = ParquetType.toPrimitive(
+          ParquetType.resolve(field.originalType, field.primitiveType),
+          values[i],
+          field.scale,
+          field.typeLength
+        );
         data[field.key].count += 1;
         data[field.key].rlevels.push(rlvl);
         data[field.key].dlevels.push(field.dLevelMax);
-        data[field.key].values.push(Types.toPrimitive(
-          field.originalType || field.primitiveType,
-          values[i]
-        ));
+        data[field.key].values.push(value);
       }
     }
   }
@@ -144,16 +198,42 @@ function shredRecordFields(
  *      rowCount: X,
  *   }
  */
-export function materializeRecords(schema: ParquetSchema, buffer: ParquetBuffer): ParquetRecord[] {
+function materializeRecords(schema: ParquetSchema, buffer: ParquetBuffer, packed?: boolean): ParquetRecord[] {
+  const need = packed && !!schema.fieldList.find(f => f.originalType === 'MAP' || f.originalType === 'LIST');
   const records: ParquetRecord[] = [];
-  for (let i = 0; i < buffer.rowCount; i++) records.push({});
+  for (let i = 0; i < buffer.rowCount; i++) records.push(need ? { [OBJ_TAG]: true } : {});
   for (const key in buffer.columnData) {
-    materializeColumn(schema, buffer, key, records);
+    materializeColumn(schema, buffer, key, records, need);
   }
-  return records;
+  return need ? convertTypes(records) : records;
 }
 
-function materializeColumn(schema: ParquetSchema, buffer: ParquetBuffer, key: string, records: ParquetRecord[]) {
+function convertTypes(val: any) {
+  if (!val) return val;
+  if (val instanceof Array || val.constructor === Array) {
+    return val.map((v: any) => convertTypes(v));
+  } else if (typeof val !== 'object') {
+    return val;
+  }
+  if (val[LIST_TAG] && val.list instanceof Array) {
+    const element = val[LIST_TAG];
+    delete val[LIST_TAG];
+    return val.list.map((e: any) => convertTypes(e[element]));
+  } else if (val[MAP_TAG] && val.map instanceof Array) {
+    delete val[MAP_TAG];
+    const map = new Map();
+    val.map.forEach((e: any) => map.set(convertTypes(e.key), convertTypes(e.value)));
+    return map;
+  } else if (val[OBJ_TAG]) {
+    delete val[OBJ_TAG];
+    for (const name in val) {
+      val[name] = convertTypes(val[name]);
+    }
+  }
+  return val;
+}
+
+function materializeColumn(schema: ParquetSchema, buffer: ParquetBuffer, key: string, records: ParquetRecord[], packed?: boolean) {
   const data = buffer.columnData[key];
   if (!data.count) return;
 
@@ -173,8 +253,8 @@ function materializeColumn(schema: ParquetSchema, buffer: ParquetBuffer, key: st
     let record = records[rLevels[rIndex++] - 1];
 
     // Internal nodes
-    for (const step of branch) {
-      if (step === field) break;
+    for (let i = 0; i < branch.length - 1; i++) {
+      const step = branch[i];
       if (dLevel < step.dLevelMax) break;
       if (step.repetitionType === 'REPEATED') {
         if (!(step.name in record)) record[step.name] = [];
@@ -184,14 +264,24 @@ function materializeColumn(schema: ParquetSchema, buffer: ParquetBuffer, key: st
       } else {
         record[step.name] = record[step.name] || {};
         record = record[step.name];
+        if (!packed) continue;
+        if (step.originalType === 'LIST') {
+          (record as any)[LIST_TAG] = Object.keys(step.fields.list.fields)[0];
+        } else if (step.originalType === 'MAP') {
+          (record as any)[MAP_TAG] = true;
+        } else if (step.primitiveType === undefined) {
+          (record as any)[OBJ_TAG] = true;
+        }
       }
     }
 
     // Leaf node
     if (dLevel === field.dLevelMax) {
-      const value = Types.fromPrimitive(
-        field.originalType || field.primitiveType,
-        data.values[vIndex]
+      const value = ParquetType.fromPrimitive(
+        ParquetType.resolve(field.originalType, field.primitiveType),
+        data.values[vIndex],
+        field.scale,
+        field.typeLength
       );
       vIndex++;
       if (field.repetitionType === 'REPEATED') {

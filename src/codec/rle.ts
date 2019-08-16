@@ -1,6 +1,6 @@
 import varint = require('varint');
-import { PrimitiveType } from '../declare';
-import { CursorBuffer, ParquetCodecOptions } from './declare';
+import { PrimitiveType } from '../types';
+import { CursorBuffer, ParquetCodecOptions } from './types';
 
 function encodeRunBitpacked(values: number[], opts: ParquetCodecOptions): Buffer {
   for (let i = 0; i < values.length % 8; i++) {
