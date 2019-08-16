@@ -244,6 +244,16 @@ of that, knowing about the type of a field allows us to compress the remaining
 data more efficiently.
 
 
+Support for LIST and MAP
+------------------------
+***TODO***
+
+
+Support for DECIMAL type
+------------------------
+***TODO***
+
+
 List of Supported Types & Encodings
 -----------------------------------
 
@@ -277,14 +287,6 @@ encodings:
   <tr><td>UINT_32</td><td>INT32</td><td>PLAIN, RLE</td></tr>
   <tr><td>UINT_64</td><td>INT64</td><td>PLAIN, RLE</td></tr>
 </table>
-
-Support for LIST and MAP collections
-------------------------
-***TODO***
-
-Support for DECIMAL type
-------------------------
-***TODO***
 
 
 Buffering & Row Group Size

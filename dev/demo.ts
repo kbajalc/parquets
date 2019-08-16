@@ -1,4 +1,4 @@
-import { ParquetEnvelopeReader, ParquetReader, ParquetSchema, ParquetWriter, ParquetWriterOptions } from '../src';
+import { ParquetReader, ParquetSchema, ParquetWriter, ParquetWriterOptions } from '../src';
 
 const TEST_VTIME = Date.now();
 const TEST_NUM_ROWS = 10;
@@ -26,11 +26,6 @@ async function example() {
     });
   }
   await writer.close();
-
-  const env = await ParquetEnvelopeReader.openFile('./decimal.parquet');
-  await env.readHeader();
-  const meta = await env.readFooter();
-  console.log(meta);
 
   const reader = await ParquetReader.openFile('./decimal.parquet');
   console.log(reader.getSchema());

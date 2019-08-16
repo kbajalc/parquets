@@ -1,6 +1,5 @@
-import { WriteStream } from 'fs';
-import { Transform } from 'stream';
-import { ParquetCodec } from './codec';
+import { Transform, Writable } from 'stream';
+import { CursorBuffer, ParquetCodec } from './codec';
 import { ParquetCompression } from './compression';
 import { ParquetField, ParquetSchema } from './schema';
 import { ParquetBuffer, ParquetData, ParquetRecord } from './shred';
@@ -51,33 +50,47 @@ export interface ParquetWriterOptions {
  * buffering/batching for performance, so close() must be called after all rows
  * are written.
  */
-export class ParquetWriter<T> {
+export class ParquetWriter<T = any, R = any> {
 
   /**
    * Convenience method to create a new buffered parquet writer that writes to
    * the specified file
    */
-  static async openFile<T>(schema: ParquetSchema, path: string, opts?: ParquetWriterOptions): Promise<ParquetWriter<T>> {
-    const outputStream = await Util.osopen(path, opts);
-    return ParquetWriter.openStream(schema, outputStream, opts);
+  static async openFile<T = any>(schema: ParquetSchema, filePath: string, opts?: ParquetWriterOptions): Promise<ParquetWriter<T, void>> {
+    if (!opts) {
+      // tslint:disable-next-line:no-parameter-reassignment
+      opts = {};
+    }
+    const writable = await ParquetWritable.openFile(filePath, opts);
+    const envelopeWriter = new ParquetEnvelopeWriter(schema, writable, opts);
+    return new ParquetWriter(schema, envelopeWriter, opts);
   }
 
   /**
    * Convenience method to create a new buffered parquet writer that writes to
    * the specified stream
    */
-  static async openStream<T>(schema: ParquetSchema, outputStream: WriteStream, opts?: ParquetWriterOptions): Promise<ParquetWriter<T>> {
+  static openStream<T = any>(schema: ParquetSchema, outputStream: Writable, opts?: ParquetWriterOptions): ParquetWriter<T, void> {
     if (!opts) {
       // tslint:disable-next-line:no-parameter-reassignment
       opts = {};
     }
+    const writable = ParquetWritable.openStream(outputStream);
+    const envelopeWriter = new ParquetEnvelopeWriter(schema, writable, opts);
+    return new ParquetWriter(schema, envelopeWriter, opts);
+  }
 
-    const envelopeWriter = await ParquetEnvelopeWriter.openStream(
-      schema,
-      outputStream,
-      opts
-    );
-
+  /**
+   * Convenience method to create a new buffered parquet writer that writes to
+   * in-memory buffer
+   */
+  static createBuffer<T = any>(schema: ParquetSchema, opts?: ParquetWriterOptions): ParquetWriter<T, Buffer> {
+    if (!opts) {
+      // tslint:disable-next-line:no-parameter-reassignment
+      opts = {};
+    }
+    const writable = ParquetWritable.createBuffer();
+    const envelopeWriter = new ParquetEnvelopeWriter(schema, writable, opts);
     return new ParquetWriter(schema, envelopeWriter, opts);
   }
 
@@ -128,7 +141,7 @@ export class ParquetWriter<T> {
    * method twice on the same object or add any rows after the close() method has
    * been called
    */
-  async close(callback?: () => void): Promise<void> {
+  async close(callback?: () => void): Promise<R> {
     if (this.closed) {
       throw new Error('writer was closed');
     }
@@ -141,12 +154,14 @@ export class ParquetWriter<T> {
     }
 
     await this.envelopeWriter.writeFooter(this.userMetadata);
-    await this.envelopeWriter.close();
+    const res = await this.envelopeWriter.close();
     this.envelopeWriter = null;
 
     if (callback) {
       callback();
     }
+
+    return res as any;
   }
 
   /**
@@ -176,6 +191,54 @@ export class ParquetWriter<T> {
   }
 }
 
+export interface ParquetWritable {
+  write(buf: Buffer): void;
+  close(): Buffer;
+}
+
+export namespace ParquetWritable {
+  /**
+   * Create a new parquet envelope writer that writes to the specified file
+   */
+  export async function openFile(filePath: string, opts?: ParquetWriterOptions): Promise<ParquetWritable> {
+    const outputStream = await Util.osopen(filePath, opts);
+    return {
+      write: Util.oswrite.bind(undefined, outputStream),
+      close: Util.osclose.bind(undefined, outputStream)
+    };
+  }
+
+  /**
+   * Create a new parquet envelope writer that writes to the specified file
+   */
+  export function openStream(outputStream: Writable): ParquetWritable {
+    return {
+      write: Util.oswrite.bind(undefined, outputStream),
+      close: () => undefined
+    };
+  }
+
+  export function createBuffer(): ParquetWritable {
+    const mem: CursorBuffer = {
+      buffer: Buffer.alloc(4096),
+      offset: 0
+    };
+    function write(buf: Buffer): void {
+      if (mem.offset + buf.length > mem.buffer.length) {
+        const nb = Buffer.alloc(mem.offset + 2 * buf.length);
+        mem.buffer.copy(nb);
+        mem.buffer = nb;
+      }
+      buf.copy(mem.buffer, mem.offset);
+      mem.offset += buf.length;
+    }
+    function close() {
+      return mem.buffer.slice(0, mem.offset);
+    }
+    return { write, close };
+  }
+}
+
 /**
  * Create a parquet file from a schema and a number of row groups. This class
  * performs direct, unbuffered writes to the underlying output stream and is
@@ -184,38 +247,31 @@ export class ParquetWriter<T> {
  */
 export class ParquetEnvelopeWriter {
 
-  /**
-   * Create a new parquet envelope writer that writes to the specified stream
-   */
-  static async openStream(schema: ParquetSchema, outputStream: WriteStream, opts: ParquetWriterOptions): Promise<ParquetEnvelopeWriter> {
-    const writeFn = Util.oswrite.bind(undefined, outputStream);
-    const closeFn = Util.osclose.bind(undefined, outputStream);
-    return new ParquetEnvelopeWriter(schema, writeFn, closeFn, 0, opts);
-  }
-
   public schema: ParquetSchema;
-  public write: (buf: Buffer) => void;
-  public close: () => void;
+  public writable: ParquetWritable;
   public offset: number;
   public rowCount: number;
   public rowGroups: RowGroup[];
   public pageSize: number;
   public useDataPageV2: boolean;
 
-  constructor(schema: ParquetSchema, writeFn: (buf: Buffer) => void, closeFn: () => void, fileOffset: number, opts: ParquetWriterOptions) {
+  constructor(schema: ParquetSchema, writable: ParquetWritable, opts: ParquetWriterOptions) {
     this.schema = schema;
-    this.write = writeFn;
-    this.close = closeFn;
-    this.offset = fileOffset;
+    this.writable = writable;
+    this.offset = 0;
     this.rowCount = 0;
     this.rowGroups = [];
     this.pageSize = opts.pageSize || PARQUET_DEFAULT_PAGE_SIZE;
     this.useDataPageV2 = ('useDataPageV2' in opts) ? opts.useDataPageV2 : false;
   }
 
+  close() {
+    return this.writable.close();
+  }
+
   writeSection(buf: Buffer): void {
     this.offset += buf.length;
-    return this.write(buf);
+    return this.writable.write(buf);
   }
 
   /**
@@ -284,15 +340,18 @@ export class ParquetTransformer<T> extends Transform {
   constructor(schema: ParquetSchema, opts: ParquetWriterOptions = {}) {
     super({ objectMode: true });
 
-    const writeProxy = (function (t: ParquetTransformer<any>) {
-      return function (b: any) {
-        t.push(b);
-      };
-    })(this);
+    const writable: ParquetWritable = {
+      write: (function (t: ParquetTransformer<any>) {
+        return function (b: any) {
+          t.push(b);
+        };
+      })(this),
+      close: () => undefined
+    };
 
     this.writer = new ParquetWriter(
       schema,
-      new ParquetEnvelopeWriter(schema, writeProxy, () => ({}), 0, opts),
+      new ParquetEnvelopeWriter(schema, writable, opts),
       opts
     );
   }

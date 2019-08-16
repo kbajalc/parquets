@@ -88,14 +88,31 @@ export class ParquetCursor<T> {
  * important that you call close() after you are finished reading the file to
  * avoid leaking file descriptors.
  */
-export class ParquetReader<T> {
+export class ParquetReader<T = any> {
 
   /**
    * Open the parquet file pointed to by the specified path and return a new
    * parquet reader
    */
-  static async openFile<T>(filePath: string): Promise<ParquetReader<T>> {
-    const envelopeReader = await ParquetEnvelopeReader.openFile(filePath);
+  static async openFile<T = any>(filePath: string): Promise<ParquetReader<T>> {
+    const readable = await ParquetReadable.openFile(filePath);
+    const envelopeReader = new ParquetEnvelopeReader(readable);
+    try {
+      await envelopeReader.readHeader();
+      const metadata = await envelopeReader.readFooter();
+      return new ParquetReader<T>(metadata, envelopeReader);
+    } catch (err) {
+      await envelopeReader.close();
+      throw err;
+    }
+  }
+
+  /**
+   * Creates a reader from buffer.
+   */
+  static async fromBuffer<T = any>(buffer: Buffer, offset?: number, size?: number): Promise<ParquetReader<T>> {
+    const readable = await ParquetReadable.fromBuffer(buffer, offset, size);
+    const envelopeReader = new ParquetEnvelopeReader(readable);
     try {
       await envelopeReader.readHeader();
       const metadata = await envelopeReader.readFooter();
@@ -201,6 +218,34 @@ export class ParquetReader<T> {
   }
 }
 
+export interface ParquetReadable {
+  size: number;
+  read(position: number, length: number): Promise<Buffer>;
+  close(): Promise<void>;
+}
+
+export namespace ParquetReadable {
+  export async function openFile(filePath: string): Promise<ParquetReadable> {
+    const fileStat = await Util.fstat(filePath);
+    const fileDescriptor = await Util.fopen(filePath);
+    return {
+      read: Util.fread.bind(undefined, fileDescriptor),
+      close: Util.fclose.bind(undefined, fileDescriptor),
+      size: fileStat.size
+    };
+  }
+
+  export async function fromBuffer(buffer: Buffer, offset?: number, size?: number): Promise<ParquetReadable> {
+    const head = offset || 0;
+    const end = size || buffer.length - head;
+    return {
+      size: size || end - head,
+      close: () => undefined,
+      read: (position, length) => Promise.resolve(buffer.slice(head + position, head + position + length))
+    };
+  }
+}
+
 /**
  * The parquet envelope reader allows direct, unbuffered access to the individual
  * sections of the parquet file, namely the header, footer and the row groups.
@@ -209,25 +254,17 @@ export class ParquetReader<T> {
  */
 export class ParquetEnvelopeReader {
 
-  static async openFile(filePath: string): Promise<ParquetEnvelopeReader> {
-    const fileStat = await Util.fstat(filePath);
-    const fileDescriptor = await Util.fopen(filePath);
-
-    const readFn = Util.fread.bind(undefined, fileDescriptor);
-    const closeFn = Util.fclose.bind(undefined, fileDescriptor);
-
-    return new ParquetEnvelopeReader(readFn, closeFn, fileStat.size);
-  }
-
   constructor(
-    public read: (position: number, length: number) => Promise<Buffer>,
-    public close: () => Promise<void>,
-    public fileSize: number
+    public readable: ParquetReadable
   ) {
   }
 
+  async close() {
+    return this.readable.close();
+  }
+
   async readHeader(): Promise<void> {
-    const buf = await this.read(0, PARQUET_MAGIC.length);
+    const buf = await this.readable.read(0, PARQUET_MAGIC.length);
 
     if (buf.toString() !== PARQUET_MAGIC) {
       throw new Error('not valid parquet file');
@@ -269,26 +306,26 @@ export class ParquetEnvelopeReader {
 
     const pagesOffset = +colChunk.meta_data.data_page_offset;
     const pagesSize = +colChunk.meta_data.total_compressed_size;
-    const pagesBuf = await this.read(pagesOffset, pagesSize);
+    const pagesBuf = await this.readable.read(pagesOffset, pagesSize);
 
     return decodeDataPages(pagesBuf, field, compression);
   }
 
   async readFooter(): Promise<FileMetaData> {
     const trailerLen = PARQUET_MAGIC.length + 4;
-    const trailerBuf = await this.read(this.fileSize - trailerLen, trailerLen);
+    const trailerBuf = await this.readable.read(this.readable.size - trailerLen, trailerLen);
 
     if (trailerBuf.slice(4).toString() !== PARQUET_MAGIC) {
       throw new Error('not a valid parquet file');
     }
 
     const metadataSize = trailerBuf.readUInt32LE(0);
-    const metadataOffset = this.fileSize - metadataSize - trailerLen;
+    const metadataOffset = this.readable.size - metadataSize - trailerLen;
     if (metadataOffset < PARQUET_MAGIC.length) {
       throw new Error('invalid metadata size');
     }
 
-    const metadataBuf = await this.read(metadataOffset, metadataSize);
+    const metadataBuf = await this.readable.read(metadataOffset, metadataSize);
     // let metadata = new parquet_thrift.FileMetaData();
     // parquet_util.decodeThrift(metadata, metadataBuf);
     const { metadata } = Util.decodeFileMetadata(metadataBuf);

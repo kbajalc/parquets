@@ -119,22 +119,37 @@ function mkTestRows(opts?: TestOptions) {
 
 async function writeTestFile(opts: TestOptions) {
   const schema = mkTestSchema(opts);
-
   const writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
+  return writeTestWriter(writer, opts);
+}
+
+async function writeTestBuffer(opts: TestOptions) {
+  const schema = mkTestSchema(opts);
+  const writer = parquet.ParquetWriter.createBuffer(schema, opts);
+  return writeTestWriter(writer, opts);
+}
+
+async function writeTestWriter<T, R>(writer: parquet.ParquetWriter<T, R>, opts: TestOptions): Promise<R> {
   writer.setMetadata('myuid', '420');
   writer.setMetadata('fnord', 'dronf');
-
   const rows = mkTestRows(opts);
-
   for (const row of rows) {
     await writer.appendRow(row);
   }
-
-  await writer.close();
+  return await writer.close();
 }
 
 async function readTestFile() {
   const reader = await parquet.ParquetReader.openFile('fruits.parquet');
+  return readTestReader(reader);
+}
+
+async function readTestBuffer(buffer: Buffer) {
+  const reader = await parquet.ParquetReader.fromBuffer(buffer);
+  return readTestReader(reader);
+}
+
+async function readTestReader(reader: parquet.ParquetReader<any>) {
   assert.equal(reader.getRowCount(), TEST_NUM_ROWS * 4);
   assert.deepEqual(reader.getMetadata(), { myuid: '420', fnord: 'dronf' });
 
@@ -409,6 +424,14 @@ async function readTestFile() {
 // tslint:disable:ter-prefer-arrow-callback
 describe('Parquet', function () {
   jest.setTimeout(90000);
+
+  describe('using in-memory buffer', function () {
+    it('write and read a test data', async function () {
+      const opts: any = { compression: 'SNAPPY' };
+      const buf = await writeTestBuffer(opts);
+      readTestBuffer(buf);
+    });
+  });
 
   describe('with DataPageHeaderV1', function () {
     it('write a test file', function () {
