@@ -169,15 +169,11 @@ describe('ParquetShredder', function () {
     const schema = new parquet.ParquetSchema({
       str: {
         optional: true,
-        list: {
-          element: { type: 'UTF8' }
-        }
+        list: { type: 'UTF8' }
       },
       num: {
         optional: true,
-        list: {
-          element: { type: 'FLOAT', optional: true }
-        }
+        list: { type: 'FLOAT', optional: true }
       }
     });
 
@@ -215,12 +211,8 @@ describe('ParquetShredder', function () {
       matrix: {
         optional: true,
         list: {
-          element: {
-            optional: true,
-            list: {
-              element: { type: 'INT32', optional: true }
-            }
-          }
+          optional: true,
+          list: { type: 'INT32', optional: true }
         }
       }
     });
@@ -247,10 +239,8 @@ describe('ParquetShredder', function () {
           value: {
             optional: true,
             list: {
-              element: {
-                type: 'INT32',
-                optional: true
-              }
+              type: 'INT32',
+              optional: true
             }
           }
         }
@@ -267,7 +257,7 @@ describe('ParquetShredder', function () {
       assert.deepEqual(records[0], {});
       assert.deepEqual(records[1], {
         test: {
-          map: [
+          key_value: [
             { key: 'a' },
             { key: 'b', value: {} }
           ]
@@ -275,7 +265,7 @@ describe('ParquetShredder', function () {
       });
       assert.deepEqual(records[2], {
         test: {
-          map: [
+          key_value: [
             {
               key: 'a', value: {
                 list: [

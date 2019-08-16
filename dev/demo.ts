@@ -65,9 +65,7 @@ async function example2() {
     },
     bList: {
       optional: true,
-      list: {
-        element: { type: 'UTF8' }
-      }
+      list: { type: 'UTF8' }
     },
     aMap: {
       optional: true,

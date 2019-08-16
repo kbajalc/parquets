@@ -96,20 +96,18 @@ function shredRecordFields(
     const field = fields[name];
     const val = record && record[name];
     if (val && field.originalType === 'MAP') {
+      // tslint:disable-next-line: variable-name
+      const key_value: any[] = [];
       if (val instanceof Map) {
-        const map: any[] = [];
-        val.forEach((value, key) => map.push({ key, value }));
-        // tslint:disable-next-line: no-parameter-reassignment
-        record = { ...record, [name]: { map } };
+        val.forEach((value, key) => key_value.push({ key, value }));
       } else {
         const keys = Object.keys(val);
         if (keys.length > 1 || keys[0] !== 'map') {
-          const map: any[] = [];
-          keys.forEach(key => map.push({ key, value: val[key] }));
-          // tslint:disable-next-line: no-parameter-reassignment
-          record = { ...record, [name]: { map } };
+          keys.forEach(key => key_value.push({ key, value: val[key] }));
         }
       }
+      // tslint:disable-next-line: no-parameter-reassignment
+      record = { ...record, [name]: { key_value } };
     }
 
     if (field.originalType === 'LIST' && val instanceof Array) {
@@ -216,18 +214,17 @@ function convertTypes(val: any) {
     return val;
   }
   if (val[LIST_TAG]) {
-    const element = val[LIST_TAG];
     delete val[LIST_TAG];
     if (val.list instanceof Array) {
-      return val.list.map((e: any) => convertTypes(e[element]));
+      return val.list.map((e: any) => convertTypes(e.element));
     } else {
       return [];
     }
   } else if (val[MAP_TAG]) {
     delete val[MAP_TAG];
     const map = new Map();
-    if (val.map instanceof Array) {
-      val.map.forEach((e: any) => map.set(convertTypes(e.key), convertTypes(e.value)));
+    if (val.key_value instanceof Array) {
+      val.key_value.forEach((e: any) => map.set(convertTypes(e.key), convertTypes(e.value)));
     }
     return map;
   } else if (val[OBJ_TAG]) {
@@ -272,9 +269,9 @@ function materializeColumn(schema: ParquetSchema, buffer: ParquetBuffer, key: st
         record = record[step.name];
         if (!packed) continue;
         if (step.originalType === 'LIST') {
-          (record as any)[LIST_TAG] = Object.keys(step.fields.list.fields)[0];
+          (record as any)[LIST_TAG] = step.isStandard;
         } else if (step.originalType === 'MAP') {
-          (record as any)[MAP_TAG] = true;
+          (record as any)[MAP_TAG] = step.isStandard;
         } else if (step.primitiveType === undefined) {
           (record as any)[OBJ_TAG] = true;
         }

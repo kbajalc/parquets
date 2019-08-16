@@ -20,10 +20,7 @@ export interface FieldDefinition {
   precision?: number;
   fieldId?: number;
   fields?: SchemaDefinition;
-  list?: {
-    elementName?: string;
-    element: FieldDefinition;
-  };
+  list?: FieldDefinition;
   map?: {
     key: FieldDefinition;
     value: FieldDefinition;
@@ -48,6 +45,7 @@ export interface ParquetField {
   isNested?: boolean;
   fieldCount?: number;
   fields?: Record<string, ParquetField>;
+  isStandard?: boolean;
 }
 
 /**
@@ -157,7 +155,7 @@ function buildFields(
         list: {
           repeated: true,
           fields: {
-            [opts.list.elementName || 'element']: opts.list.element
+            element: opts.list
           }
         }
       };
@@ -167,7 +165,7 @@ function buildFields(
       opts.type = 'MAP';
       delete opts.map.key.optional;
       opts.fields = {
-        map: {
+        key_value: {
           type: 'MAP_KEY_VALUE',
           repeated: true,
           fields: {
@@ -199,10 +197,33 @@ function buildFields(
 
     /* nested field */
     if (opts.fields) {
+      const originalType = typeDef ? typeDef.originalType : null;
+      let isStandard: boolean = undefined;
+      switch (originalType) {
+        case 'LIST':
+          isStandard = !!(
+            Object.keys(opts.fields).length === 1
+            && opts.fields.list
+            && opts.fields.list.repeated
+            && opts.fields.list.fields
+            && opts.fields.list.fields.element
+          );
+          break;
+        case 'MAP':
+          isStandard = !!(
+            Object.keys(opts.fields).length === 1
+            && opts.fields.key_value
+            && opts.fields.key_value.repeated
+            && opts.fields.key_value.fields
+            && opts.fields.key_value.fields.key
+            && !opts.fields.key_value.fields.key.optional
+          );
+          break;
+      }
       const cpath = path.concat([name]);
       fieldList[name] = {
         name,
-        originalType: typeDef ? typeDef.originalType : null,
+        originalType,
         path: cpath,
         key: cpath.join(),
         repetitionType,
@@ -215,7 +236,8 @@ function buildFields(
           rLevelMax,
           dLevelMax,
           cpath
-        )
+        ),
+        isStandard
       };
       continue;
     }
