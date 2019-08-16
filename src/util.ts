@@ -1,15 +1,7 @@
 import fs = require('fs');
 import { TBufferedTransport, TCompactProtocol, TFramedTransport } from 'thrift';
 import { FileMetaData, PageHeader } from './thrift';
-
-export interface WriteStreamOptions {
-  flags?: string;
-  encoding?: string;
-  fd?: number;
-  mode?: number;
-  autoClose?: boolean;
-  start?: number;
-}
+import { ParquetWriterOptions } from './writer';
 
 class UFramedTransport extends TFramedTransport {
   public readPos: number;
@@ -168,7 +160,7 @@ export function osclose(os: fs.WriteStream): Promise<void> {
   });
 }
 
-export function osopen(path: string, opts: WriteStreamOptions): Promise<fs.WriteStream> {
+export function osopen(path: string, opts: ParquetWriterOptions): Promise<fs.WriteStream> {
   return new Promise((resolve, reject) => {
     const outputStream = fs.createWriteStream(path, opts);
     outputStream.once('open', fd => resolve(outputStream));
