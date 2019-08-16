@@ -14,6 +14,7 @@ for compatibility with Apache's [reference implementation](https://github.com/ap
 
 **WARNING**: *There are compatibility issues with the reference implementation*:
 - only GZIP and SNAPPY compressions are compatible
+- DECIMAL with precision > 15 is materialized as Buffer
 - [Parquet Tools](https://github.com/apache/parquet-mr/tree/master/parquet-tools) are command line tools that aid in the inspection of Parquet files.
 - always verify your table structure loaded with realistic data sample can be read by Parquet Tools!
 
@@ -253,6 +254,7 @@ encodings:
 <table>
   <tr><th>Logical Type</th><th>Primitive Type</th><th>Encodings</th></tr>
   <tr><td>UTF8</td><td>BYTE_ARRAY</td><td>PLAIN</td></tr>
+  <tr><td>ENUM</td><td>BYTE_ARRAY</td><td>PLAIN</td></tr>
   <tr><td>JSON</td><td>BYTE_ARRAY</td><td>PLAIN</td></tr>
   <tr><td>BSON</td><td>BYTE_ARRAY</td><td>PLAIN</td></tr>
   <tr><td>BYTE_ARRAY</td><td>BYTE_ARRAY</td><td>PLAIN</td></tr>
@@ -275,6 +277,14 @@ encodings:
   <tr><td>UINT_32</td><td>INT32</td><td>PLAIN, RLE</td></tr>
   <tr><td>UINT_64</td><td>INT64</td><td>PLAIN, RLE</td></tr>
 </table>
+
+Support for LIST and MAP collections
+------------------------
+***TODO***
+
+Support for DECIMAL type
+------------------------
+***TODO***
 
 
 Buffering & Row Group Size

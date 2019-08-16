@@ -215,14 +215,20 @@ function convertTypes(val: any) {
   } else if (typeof val !== 'object') {
     return val;
   }
-  if (val[LIST_TAG] && val.list instanceof Array) {
+  if (val[LIST_TAG]) {
     const element = val[LIST_TAG];
     delete val[LIST_TAG];
-    return val.list.map((e: any) => convertTypes(e[element]));
-  } else if (val[MAP_TAG] && val.map instanceof Array) {
+    if (val.list instanceof Array) {
+      return val.list.map((e: any) => convertTypes(e[element]));
+    } else {
+      return [];
+    }
+  } else if (val[MAP_TAG]) {
     delete val[MAP_TAG];
     const map = new Map();
-    val.map.forEach((e: any) => map.set(convertTypes(e.key), convertTypes(e.value)));
+    if (val.map instanceof Array) {
+      val.map.forEach((e: any) => map.set(convertTypes(e.key), convertTypes(e.value)));
+    }
     return map;
   } else if (val[OBJ_TAG]) {
     delete val[OBJ_TAG];

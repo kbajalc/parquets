@@ -114,8 +114,8 @@ export class ParquetSchema {
     ParquetRecord.shred(this, record, buffer);
   }
 
-  materializeRecords(buffer: ParquetBuffer): any[] {
-    return ParquetRecord.materialize(this, buffer);
+  materializeRecords(buffer: ParquetBuffer, packed?: boolean): any[] {
+    return ParquetRecord.materialize(this, buffer, packed);
   }
 
   compress(type: ParquetCompression): this {

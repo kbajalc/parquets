@@ -143,4 +143,175 @@ describe('ParquetShredder', function () {
     assert.deepEqual(records[2], { fruit: {} });
     assert.deepEqual(records[3], { fruit: { color: ['red', 'blue'], type: 'x' } });
   });
+
+  it('should shred ENUM', function () {
+    const schema = new parquet.ParquetSchema({
+      enum: {
+        type: 'ENUM',
+        optional: true
+      }
+    });
+
+    const buffer: ParquetBuffer = {};
+    schema.shredRecord({}, buffer);
+    schema.shredRecord({ enum: null }, buffer);
+    schema.shredRecord({ enum: '' }, buffer);
+    schema.shredRecord({ enum: 'TEST' }, buffer);
+
+    const records = schema.materializeRecords(buffer);
+    assert.deepEqual(records[0], {});
+    assert.deepEqual(records[1], {});
+    assert.deepEqual(records[2], { enum: '' });
+    assert.deepEqual(records[3], { enum: 'TEST' });
+  });
+
+  it('should shred LIST', function () {
+    const schema = new parquet.ParquetSchema({
+      str: {
+        optional: true,
+        list: {
+          element: { type: 'UTF8' }
+        }
+      },
+      num: {
+        optional: true,
+        list: {
+          element: { type: 'FLOAT', optional: true }
+        }
+      }
+    });
+
+    const buffer: ParquetBuffer = {};
+    schema.shredRecord({}, buffer);
+    schema.shredRecord({ str: [], num: null }, buffer);
+    schema.shredRecord({ str: ['a'], num: [1] }, buffer);
+    schema.shredRecord({ str: ['a', 'b', 'c'], num: [1, null, 2] }, buffer);
+
+    {
+      const records = schema.materializeRecords(buffer);
+      assert.deepEqual(records[0], {});
+      assert.deepEqual(records[1], { str: {} });
+      assert.deepEqual(records[2], {
+        str: { list: [{ element: 'a' }] },
+        num: { list: [{ element: 1 }] }
+      });
+      assert.deepEqual(records[3], {
+        str: { list: [{ element: 'a' }, { element: 'b' }, { element: 'c' }] },
+        num: { list: [{ element: 1 }, {}, { element: 2 }] }
+      });
+    }
+
+    {
+      const records = schema.materializeRecords(buffer, true);
+      assert.deepEqual(records[0], {});
+      assert.deepEqual(records[1], { str: [] });
+      assert.deepEqual(records[2], { str: ['a'], num: [1] });
+      assert.deepEqual(records[3], { str: ['a', 'b', 'c'], num: [1, undefined, 2] });
+    }
+  });
+
+  it('should shred LIST of LIST', function () {
+    const schema = new parquet.ParquetSchema({
+      matrix: {
+        optional: true,
+        list: {
+          element: {
+            optional: true,
+            list: {
+              element: { type: 'INT32', optional: true }
+            }
+          }
+        }
+      }
+    });
+
+    const buffer: ParquetBuffer = {};
+    schema.shredRecord({}, buffer);
+    schema.shredRecord({ matrix: [] }, buffer);
+    schema.shredRecord({ matrix: [[1, 2], [3, 4]] }, buffer);
+    schema.shredRecord({ matrix: [[1, 2], null, [3, 4, null, 5]] }, buffer);
+
+    const records = schema.materializeRecords(buffer, true);
+    assert.deepEqual(records[0], {});
+    assert.deepEqual(records[1], { matrix: [] });
+    assert.deepEqual(records[2], { matrix: [[1, 2], [3, 4]] });
+    assert.deepEqual(records[3], { matrix: [[1, 2], undefined, [3, 4, undefined, 5]] });
+  });
+
+  it('should shred MAP', function () {
+    const schema = new parquet.ParquetSchema({
+      test: {
+        optional: true,
+        map: {
+          key: { type: 'UTF8' },
+          value: {
+            optional: true,
+            list: {
+              element: {
+                type: 'INT32',
+                optional: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const buffer: ParquetBuffer = {};
+    schema.shredRecord({}, buffer);
+    schema.shredRecord({ test: { a: null, b: [] } }, buffer);
+    schema.shredRecord({ test: { a: [1], b: [1, null, 3] } }, buffer);
+
+    {
+      const records = schema.materializeRecords(buffer);
+      assert.deepEqual(records[0], {});
+      assert.deepEqual(records[1], {
+        test: {
+          map: [
+            { key: 'a' },
+            { key: 'b', value: {} }
+          ]
+        }
+      });
+      assert.deepEqual(records[2], {
+        test: {
+          map: [
+            {
+              key: 'a', value: {
+                list: [
+                  { element: 1 }
+                ]
+              }
+            },
+            {
+              key: 'b', value: {
+                list: [
+                  { element: 1 },
+                  {},
+                  { element: 3 }
+                ]
+              }
+            }
+          ]
+        }
+      });
+    }
+
+    {
+      const records = schema.materializeRecords(buffer, true);
+      assert.deepEqual(records[0], {});
+      assert.deepEqual(records[1], {
+        test: new Map([
+          ['a', undefined],
+          ['b', []]
+        ])
+      });
+      assert.deepEqual(records[2], {
+        test: new Map([
+          ['a', [1]],
+          ['b', [1, undefined, 3]]
+        ])
+      });
+    }
+  });
 });
