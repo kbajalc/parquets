@@ -269,9 +269,9 @@ function materializeColumn(schema: ParquetSchema, buffer: ParquetBuffer, key: st
         record = record[step.name];
         if (!packed) continue;
         if (step.originalType === 'LIST') {
-          (record as any)[LIST_TAG] = step.isStandard;
+          (record as any)[LIST_TAG] = isStandardCollection(step);
         } else if (step.originalType === 'MAP') {
-          (record as any)[MAP_TAG] = step.isStandard;
+          (record as any)[MAP_TAG] = isStandardCollection(step);
         } else if (step.primitiveType === undefined) {
           (record as any)[OBJ_TAG] = true;
         }
@@ -297,4 +297,35 @@ function materializeColumn(schema: ParquetSchema, buffer: ParquetBuffer, key: st
       }
     }
   }
+}
+
+const stdCollection = Symbol('stdCollection');
+
+function isStandardCollection(field: ParquetField): boolean {
+  let isStandard: boolean = undefined;
+  if (!field) return isStandard;
+  if (stdCollection in field) return (field as any)[stdCollection];
+  switch (field.originalType) {
+    case 'LIST':
+      isStandard = !!(
+        Object.keys(field.fields).length === 1
+        && field.fields.list
+        && field.fields.list.repetitionType === 'REPEATED'
+        && field.fields.list.fields
+        && field.fields.list.fields.element
+      );
+      break;
+    case 'MAP':
+      isStandard = !!(
+        Object.keys(field.fields).length === 1
+        && field.fields.key_value
+        && field.fields.key_value.repetitionType === 'REPEATED'
+        && field.fields.key_value.fields
+        && field.fields.key_value.fields.key
+        && field.fields.key_value.fields.key.repetitionType === 'REQUIRED'
+      );
+      break;
+  }
+  (field as any)[stdCollection] = isStandard;
+  return isStandard;
 }

@@ -45,7 +45,6 @@ export interface ParquetField {
   isNested?: boolean;
   fieldCount?: number;
   fields?: Record<string, ParquetField>;
-  isStandard?: boolean;
 }
 
 /**
@@ -198,28 +197,6 @@ function buildFields(
     /* nested field */
     if (opts.fields) {
       const originalType = typeDef ? typeDef.originalType : null;
-      let isStandard: boolean = undefined;
-      switch (originalType) {
-        case 'LIST':
-          isStandard = !!(
-            Object.keys(opts.fields).length === 1
-            && opts.fields.list
-            && opts.fields.list.repeated
-            && opts.fields.list.fields
-            && opts.fields.list.fields.element
-          );
-          break;
-        case 'MAP':
-          isStandard = !!(
-            Object.keys(opts.fields).length === 1
-            && opts.fields.key_value
-            && opts.fields.key_value.repeated
-            && opts.fields.key_value.fields
-            && opts.fields.key_value.fields.key
-            && !opts.fields.key_value.fields.key.optional
-          );
-          break;
-      }
       const cpath = path.concat([name]);
       fieldList[name] = {
         name,
@@ -236,8 +213,7 @@ function buildFields(
           rLevelMax,
           dLevelMax,
           cpath
-        ),
-        isStandard
+        )
       };
       continue;
     }
