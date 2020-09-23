@@ -1,5 +1,4 @@
-import { WriteStream } from 'fs';
-import { Transform } from 'stream';
+import { Transform, Writable } from 'stream';
 import { ParquetCodecOptions, PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
 import { ParquetBuffer, ParquetCodec, ParquetData, ParquetField, PrimitiveType } from './declare';
@@ -67,7 +66,7 @@ export class ParquetWriter<T> {
    * Convenience method to create a new buffered parquet writer that writes to
    * the specified stream
    */
-  static async openStream<T>(schema: ParquetSchema, outputStream: WriteStream, opts?: ParquetWriterOptions): Promise<ParquetWriter<T>> {
+  static async openStream<T>(schema: ParquetSchema, outputStream: Writable, opts?: ParquetWriterOptions): Promise<ParquetWriter<T>> {
     if (!opts) {
       // tslint:disable-next-line:no-parameter-reassignment
       opts = {};
@@ -188,7 +187,7 @@ export class ParquetEnvelopeWriter {
   /**
    * Create a new parquet envelope writer that writes to the specified stream
    */
-  static async openStream(schema: ParquetSchema, outputStream: WriteStream, opts: ParquetWriterOptions): Promise<ParquetEnvelopeWriter> {
+  static async openStream(schema: ParquetSchema, outputStream: Writable, opts: ParquetWriterOptions): Promise<ParquetEnvelopeWriter> {
     const writeFn = Util.oswrite.bind(undefined, outputStream);
     const closeFn = Util.osclose.bind(undefined, outputStream);
     return new ParquetEnvelopeWriter(schema, writeFn, closeFn, 0, opts);

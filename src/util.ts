@@ -1,6 +1,7 @@
 import fs = require('fs');
 import { TBufferedTransport, TCompactProtocol, TFramedTransport } from 'thrift';
 import { FileMetaData, PageHeader } from './thrift';
+import { Writable } from 'stream';
 
 export interface WriteStreamOptions {
   flags?: string;
@@ -144,7 +145,7 @@ export function fclose(fd: number): Promise<void> {
   });
 }
 
-export function oswrite(os: fs.WriteStream, buf: Buffer): Promise<void> {
+export function oswrite(os: Writable, buf: Buffer): Promise<void> {
   return new Promise((resolve, reject) => {
     os.write(buf, (err) => {
       if (err) {
@@ -156,7 +157,7 @@ export function oswrite(os: fs.WriteStream, buf: Buffer): Promise<void> {
   });
 }
 
-export function osclose(os: fs.WriteStream): Promise<void> {
+export function osclose(os: Writable): Promise<void> {
   return new Promise((resolve, reject) => {
     (os as any).close((err: any) => {
       if (err) {
