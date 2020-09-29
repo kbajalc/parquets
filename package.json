@@ -1,7 +1,7 @@
 {
   "name": "parquets",
   "description": "TypeScript implementation of the Parquet file format, based on parquet.js",
-  "version": "0.10.7",
+  "version": "0.10.8",
   "upstream": "0.10.1",
   "homepage": "https://github.com/kbajalc/parquets",
   "author": "kbajalc@gmail.com",
@@ -71,7 +71,7 @@
     "lzo": "^0.4.11",
     "node-snappy": "^0.1.4",
     "object-stream": "0.0.1",
-    "snappy": "^6.2.3",
+    "snappy": "6.2.3",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.3.0",
     "tslint": "^5.18.0",
