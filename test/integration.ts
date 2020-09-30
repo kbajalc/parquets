@@ -3,6 +3,7 @@ import { ParquetCompression } from '../src';
 import chai = require('chai');
 import fs = require('fs');
 import parquet = require('../src');
+import { promisify } from 'util';
 const assert = chai.assert;
 const objectStream = require('object-stream');
 
@@ -52,7 +53,7 @@ function mkTestSchema(opts: TestOptions) {
   });
 }
 
-function mkTestRows(opts?: TestOptions) {
+function mkTestRows() {
   const rows: any[] = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; i++) {
@@ -124,7 +125,7 @@ async function writeTestFile(opts: TestOptions) {
   writer.setMetadata('myuid', '420');
   writer.setMetadata('fnord', 'dronf');
 
-  const rows = mkTestRows(opts);
+  const rows = mkTestRows();
 
   for (const row of rows) {
     await writer.appendRow(row);
@@ -403,7 +404,7 @@ async function readTestFile() {
     assert.equal(await cursor.next(), null);
   }
 
-  reader.close();
+  await reader.close();
 }
 
 // tslint:disable:ter-prefer-arrow-callback
@@ -490,6 +491,35 @@ describe('Parquet', function () {
       const ostream = fs.createWriteStream('fruits_stream.parquet');
       const istream = objectStream.fromArray(mkTestRows());
       istream.pipe(transform).pipe(ostream);
+      await promisify(ostream.on.bind(ostream, 'finish'))();
+      await readTestFile();
     });
   });
+
+  if ('asyncIterator' in Symbol) {
+    describe('using the AsyncIterable API', function () {
+      it('allows iteration on a cursor using for-await-of', async function () {
+        await writeTestFile({ useDataPageV2: true, compression: 'GZIP' });
+        const reader = await parquet.ParquetReader.openFile<{ name: string }>('fruits.parquet');
+
+        async function checkTestDataUsingForAwaitOf(cursor: AsyncIterable<{ name: string }>) {
+          const names: Set<string> = new Set();
+          let rowCount = 0;
+          for await (const row of cursor) {
+            names.add(row.name);
+            rowCount++;
+          }
+          assert.equal(rowCount, TEST_NUM_ROWS * names.size);
+          assert.deepEqual(names, new Set(['apples', 'oranges', 'kiwi', 'banana']));
+        }
+
+        // Works with reader (will return all columns)
+        await checkTestDataUsingForAwaitOf(reader);
+
+        // Works with a cursor
+        const cursor = reader.getCursor(['name']);
+        await checkTestDataUsingForAwaitOf(cursor);
+      });
+    });
+  }
 });
