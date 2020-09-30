@@ -294,7 +294,7 @@ writer.setRowGroupSize(8192);
 ```
 
 
-Depdendencies
+Dependencies
 -------------
 
 Parquet uses [thrift](https://thrift.apache.org/) to encode the schema and other
