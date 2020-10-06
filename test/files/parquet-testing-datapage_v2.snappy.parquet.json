@@ -1,0 +1,5 @@
+{"a":"abc","b":1,"c":2.0,"d":true,"e":{"list":[{"element":1},{"element":2},{"element":3}]}}
+{"a":"abc","b":2,"c":3.0,"d":true}
+{"a":"abc","b":3,"c":4.0,"d":true}
+{"b":4,"c":5.0,"d":false,"e":{"list":[{"element":1},{"element":2},{"element":3}]}}
+{"a":"abc","b":5,"c":2.0,"d":true,"e":{"list":[{"element":1},{"element":2}]}}
