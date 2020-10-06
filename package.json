@@ -6,6 +6,9 @@
   "homepage": "https://github.com/kbajalc/parquets",
   "author": "kbajalc@gmail.com",
   "license": "MIT",
+  "browser": {
+    "fs": false
+  },
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "source": "./src/index.ts",
