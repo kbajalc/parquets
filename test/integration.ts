@@ -1,9 +1,9 @@
 import 'jest';
+import { promisify } from 'util';
 import { ParquetCompression } from '../src';
 import chai = require('chai');
 import fs = require('fs');
 import parquet = require('../src');
-import { promisify } from 'util';
 const assert = chai.assert;
 const objectStream = require('object-stream');
 
@@ -425,7 +425,7 @@ describe('Parquet', function () {
       const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts).then(readTestFile);
     });
-    
+
     it('write an empty test file and then read it back', async function () {
       const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       const schema = mkTestSchema(opts);
@@ -442,6 +442,7 @@ describe('Parquet', function () {
       await writer.close();
       const reader = await parquet.ParquetReader.openFile('empty.parquet');
       expect(reader.getRowCount()).toBe(0);
+    });
 
     it('supports reading from a buffer', function () {
       const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
