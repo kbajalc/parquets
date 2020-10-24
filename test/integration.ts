@@ -3,6 +3,7 @@ import { ParquetCompression } from '../src';
 import chai = require('chai');
 import fs = require('fs');
 import parquet = require('../src');
+import { promisify } from 'util';
 const assert = chai.assert;
 const objectStream = require('object-stream');
 
@@ -52,7 +53,7 @@ function mkTestSchema(opts: TestOptions) {
   });
 }
 
-function mkTestRows(opts?: TestOptions) {
+function mkTestRows() {
   const rows: any[] = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; i++) {
@@ -117,24 +118,28 @@ function mkTestRows(opts?: TestOptions) {
   return rows;
 }
 
-async function writeTestFile(opts: TestOptions) {
-  const schema = mkTestSchema(opts);
-
-  const writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
+async function writeTestData(writer: parquet.ParquetWriter<unknown>, opts: TestOptions) {
   writer.setMetadata('myuid', '420');
   writer.setMetadata('fnord', 'dronf');
-
-  const rows = mkTestRows(opts);
-
+  const rows = mkTestRows();
   for (const row of rows) {
     await writer.appendRow(row);
   }
-
   await writer.close();
+}
+
+async function writeTestFile(opts: TestOptions) {
+  const schema = mkTestSchema(opts);
+  const writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
+  await writeTestData(writer, opts);
 }
 
 async function readTestFile() {
   const reader = await parquet.ParquetReader.openFile('fruits.parquet');
+  await checkTestData(reader);
+}
+
+async function checkTestData(reader: parquet.ParquetReader<unknown>) {
   assert.equal(reader.getRowCount(), TEST_NUM_ROWS * 4);
   assert.deepEqual(reader.getMetadata(), { myuid: '420', fnord: 'dronf' });
 
@@ -403,7 +408,7 @@ async function readTestFile() {
     assert.equal(await cursor.next(), null);
   }
 
-  reader.close();
+  await reader.close();
 }
 
 // tslint:disable:ter-prefer-arrow-callback
@@ -420,7 +425,7 @@ describe('Parquet', function () {
       const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts).then(readTestFile);
     });
-
+    
     it('write an empty test file and then read it back', async function () {
       const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       const schema = mkTestSchema(opts);
@@ -437,6 +442,14 @@ describe('Parquet', function () {
       await writer.close();
       const reader = await parquet.ParquetReader.openFile('empty.parquet');
       expect(reader.getRowCount()).toBe(0);
+
+    it('supports reading from a buffer', function () {
+      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      return writeTestFile(opts).then(async function () {
+        const data = await promisify(fs.readFile)('fruits.parquet');
+        const reader = await parquet.ParquetReader.openBuffer(data);
+        await checkTestData(reader);
+      });
     });
 
     it('write a test file with GZIP compression and then read it back', function () {
@@ -525,6 +538,35 @@ describe('Parquet', function () {
       const ostream = fs.createWriteStream('fruits_stream.parquet');
       const istream = objectStream.fromArray(mkTestRows());
       istream.pipe(transform).pipe(ostream);
+      await promisify(ostream.on.bind(ostream, 'finish'))();
+      await readTestFile();
     });
   });
+
+  if ('asyncIterator' in Symbol) {
+    describe('using the AsyncIterable API', function () {
+      it('allows iteration on a cursor using for-await-of', async function () {
+        await writeTestFile({ useDataPageV2: true, compression: 'GZIP' });
+        const reader = await parquet.ParquetReader.openFile<{ name: string }>('fruits.parquet');
+
+        async function checkTestDataUsingForAwaitOf(cursor: AsyncIterable<{ name: string }>) {
+          const names: Set<string> = new Set();
+          let rowCount = 0;
+          for await (const row of cursor) {
+            names.add(row.name);
+            rowCount++;
+          }
+          assert.equal(rowCount, TEST_NUM_ROWS * names.size);
+          assert.deepEqual(names, new Set(['apples', 'oranges', 'kiwi', 'banana']));
+        }
+
+        // Works with reader (will return all columns)
+        await checkTestDataUsingForAwaitOf(reader);
+
+        // Works with a cursor
+        const cursor = reader.getCursor(['name']);
+        await checkTestDataUsingForAwaitOf(cursor);
+      });
+    });
+  }
 });

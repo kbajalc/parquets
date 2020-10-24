@@ -1,9 +1,9 @@
 node_modules
 *.parquet
 npm-debug.log
-package-lock.json
 .nyc_output
 lib
 build
 dump
 data
+.idea

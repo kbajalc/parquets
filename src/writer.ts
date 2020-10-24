@@ -523,12 +523,8 @@ function encodeColumnChunk(
   });
 
   /* list encodings */
-  const encodingsSet: Record<string, boolean> = {};
-  encodingsSet[PARQUET_RDLVL_ENCODING] = true;
-  encodingsSet[column.encoding] = true;
-  for (const k in encodingsSet) {
-    metadata.encodings.push((Encoding as any)[k]);
-  }
+  metadata.encodings.push(Encoding[PARQUET_RDLVL_ENCODING]);
+  metadata.encodings.push(Encoding[column.encoding]);
 
   /* concat metadata header and data pages */
   const metadataOffset = baseOffset + pageBuf.length;
