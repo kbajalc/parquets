@@ -118,24 +118,28 @@ function mkTestRows() {
   return rows;
 }
 
-async function writeTestFile(opts: TestOptions) {
-  const schema = mkTestSchema(opts);
-
-  const writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
+async function writeTestData(writer: parquet.ParquetWriter<unknown>, opts: TestOptions) {
   writer.setMetadata('myuid', '420');
   writer.setMetadata('fnord', 'dronf');
-
   const rows = mkTestRows();
-
   for (const row of rows) {
     await writer.appendRow(row);
   }
-
   await writer.close();
+}
+
+async function writeTestFile(opts: TestOptions) {
+  const schema = mkTestSchema(opts);
+  const writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
+  await writeTestData(writer, opts);
 }
 
 async function readTestFile() {
   const reader = await parquet.ParquetReader.openFile('fruits.parquet');
+  await checkTestData(reader);
+}
+
+async function checkTestData(reader: parquet.ParquetReader<unknown>) {
   assert.equal(reader.getRowCount(), TEST_NUM_ROWS * 4);
   assert.deepEqual(reader.getMetadata(), { myuid: '420', fnord: 'dronf' });
 
@@ -420,6 +424,15 @@ describe('Parquet', function () {
     it('write a test file and then read it back', function () {
       const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts).then(readTestFile);
+    });
+
+    it('supports reading from a buffer', function () {
+      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      return writeTestFile(opts).then(async function () {
+        const data = await promisify(fs.readFile)('fruits.parquet');
+        const reader = await parquet.ParquetReader.openBuffer(data);
+        await checkTestData(reader);
+      });
     });
 
     it('write a test file with GZIP compression and then read it back', function () {
