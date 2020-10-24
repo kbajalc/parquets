@@ -27,7 +27,7 @@ const PARQUET_RDLVL_ENCODING = 'RLE';
 /**
  * A parquet cursor is used to retrieve rows from a parquet file in order
  */
-export class ParquetCursor<T> {
+export class ParquetCursor<T> implements AsyncIterable<T> {
 
   public metadata: FileMetaData;
   public envelopeReader: ParquetEnvelopeReader;
@@ -78,6 +78,34 @@ export class ParquetCursor<T> {
     this.rowGroup = [];
     this.rowGroupIndex = 0;
   }
+
+  /**
+   * Implement AsyncIterable
+   */
+  // tslint:disable-next-line:function-name
+  [Symbol.asyncIterator](): AsyncIterator<T> {
+    let done = false;
+    return {
+      next: async () => {
+        if (done) {
+          return { done, value: null };
+        }
+        const value = await this.next();
+        if (value === null) {
+          return { done: true, value };
+        }
+        return { done: false, value };
+      },
+      return: async () => {
+        done = true;
+        return { done, value: null };
+      },
+      throw: async () => {
+        done = true;
+        return { done: true, value: null };
+      }
+    };
+  }
 }
 
 /**
@@ -87,7 +115,7 @@ export class ParquetCursor<T> {
  * important that you call close() after you are finished reading the file to
  * avoid leaking file descriptors.
  */
-export class ParquetReader<T> {
+export class ParquetReader<T> implements AsyncIterable<T> {
 
   /**
    * Open the parquet file pointed to by the specified path and return a new
@@ -149,6 +177,7 @@ export class ParquetReader<T> {
    * names means that only those columns should be loaded from disk.
    */
   getCursor(): ParquetCursor<T>;
+  getCursor<K extends keyof T>(columnList: (K | K[])[]): ParquetCursor<Pick<T, K>>;
   getCursor(columnList: (string | string[])[]): ParquetCursor<Partial<T>>;
   getCursor(columnList?: (string | string[])[]): ParquetCursor<Partial<T>> {
     if (!columnList) {
@@ -201,6 +230,14 @@ export class ParquetReader<T> {
     await this.envelopeReader.close();
     this.envelopeReader = null;
     this.metadata = null;
+  }
+
+  /**
+   * Implement AsyncIterable
+   */
+  // tslint:disable-next-line:function-name
+  [Symbol.asyncIterator](): AsyncIterator<T> {
+    return this.getCursor()[Symbol.asyncIterator]();
   }
 }
 
