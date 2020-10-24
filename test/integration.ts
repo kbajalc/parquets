@@ -425,6 +425,23 @@ describe('Parquet', function () {
       const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
       return writeTestFile(opts).then(readTestFile);
     });
+    
+    it('write an empty test file and then read it back', async function () {
+      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const schema = mkTestSchema(opts);
+      const writer = await parquet.ParquetWriter.openFile(schema, 'empty.parquet', opts);
+      await writer.close();
+      const reader = await parquet.ParquetReader.openFile('empty.parquet');
+      expect(reader.getRowCount()).toBe(0);
+    });
+
+    it('write an empty test file with empty schema and then read it back', async function () {
+      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const schema = new parquet.ParquetSchema({});
+      const writer = await parquet.ParquetWriter.openFile(schema, 'empty.parquet', opts);
+      await writer.close();
+      const reader = await parquet.ParquetReader.openFile('empty.parquet');
+      expect(reader.getRowCount()).toBe(0);
 
     it('supports reading from a buffer', function () {
       const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
@@ -467,6 +484,23 @@ describe('Parquet', function () {
       return writeTestFile(opts).then(readTestFile);
     });
 
+    it('write an empty test file and then read it back', async function () {
+      const opts: TestOptions = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
+      const schema = mkTestSchema(opts);
+      const writer = await parquet.ParquetWriter.openFile(schema, 'empty.parquet', opts);
+      await writer.close();
+      const reader = await parquet.ParquetReader.openFile('empty.parquet');
+      expect(reader.getRowCount()).toBe(0);
+    });
+
+    it('write an empty test file with empty schema and then read it back', async function () {
+      const opts: TestOptions = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
+      const schema = new parquet.ParquetSchema({});
+      const writer = await parquet.ParquetWriter.openFile(schema, 'empty.parquet', opts);
+      await writer.close();
+      const reader = await parquet.ParquetReader.openFile('empty.parquet');
+      expect(reader.getRowCount()).toBe(0);
+    });
     it('write a test file with GZIP compression and then read it back', function () {
       const opts: TestOptions = { useDataPageV2: true, compression: 'GZIP' };
       return writeTestFile(opts).then(readTestFile);

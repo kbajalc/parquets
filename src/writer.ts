@@ -254,14 +254,6 @@ export class ParquetEnvelopeWriter {
       userMetadata = {};
     }
 
-    if (this.rowCount === 0) {
-      throw new Error('cannot write parquet file with zero rows');
-    }
-
-    if (this.schema.fieldList.length === 0) {
-      throw new Error('cannot write parquet file with zero fieldList');
-    }
-
     return this.writeSection(encodeFooter(this.schema, this.rowCount, this.rowGroups, userMetadata));
   }
 
