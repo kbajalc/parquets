@@ -1,0 +1,6 @@
+{"id":1}
+{"id":2}
+{"id":3,"phoneNumbers":{}}
+{"id":4,"phoneNumbers":{"phone":[{"number":5555555555}]}}
+{"id":5,"phoneNumbers":{"phone":[{"number":1111111111,"kind":"home"}]}}
+{"id":6,"phoneNumbers":{"phone":[{"number":1111111111,"kind":"home"},{"number":2222222222},{"number":3333333333,"kind":"mobile"}]}}
