@@ -105,6 +105,18 @@ export class ParquetReader<T> {
     }
   }
 
+  static async openBuffer<T>(buffer: Buffer): Promise<ParquetReader<T>> {
+    const envelopeReader = await ParquetEnvelopeReader.openBuffer(buffer);
+    try {
+      await envelopeReader.readHeader();
+      const metadata = await envelopeReader.readFooter();
+      return new ParquetReader<T>(metadata, envelopeReader);
+    } catch (err) {
+      await envelopeReader.close();
+      throw err;
+    }
+  }
+
   public metadata: FileMetaData;
   public envelopeReader: ParquetEnvelopeReader;
   public schema: ParquetSchema;
@@ -208,6 +220,13 @@ export class ParquetEnvelopeReader {
     const closeFn = Util.fclose.bind(undefined, fileDescriptor);
 
     return new ParquetEnvelopeReader(readFn, closeFn, fileStat.size);
+  }
+
+  static async openBuffer(buffer: Buffer): Promise<ParquetEnvelopeReader> {
+    const readFn = (position: number, length: number) =>
+      Promise.resolve(buffer.slice(position, position + length));
+    const closeFn = () => Promise.resolve();
+    return new ParquetEnvelopeReader(readFn, closeFn, buffer.length);
   }
 
   constructor(
