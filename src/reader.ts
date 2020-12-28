@@ -35,6 +35,7 @@ export class ParquetCursor<T> implements AsyncIterable<T> {
   public columnList: string[][];
   public rowGroup: ParquetRecord[];
   public rowGroupIndex: number;
+  public cursorIndex: number;
 
   /**
    * Create a new parquet reader from the file metadata and an envelope reader.
@@ -49,6 +50,7 @@ export class ParquetCursor<T> implements AsyncIterable<T> {
     this.columnList = columnList;
     this.rowGroup = [];
     this.rowGroupIndex = 0;
+    this.cursorIndex = 0;
   }
 
   /**
@@ -56,7 +58,7 @@ export class ParquetCursor<T> implements AsyncIterable<T> {
    * of the file was reached
    */
   async next<T = any>(): Promise<T> {
-    if (this.rowGroup.length === 0) {
+    if (this.cursorIndex >= this.rowGroup.length) {
       if (this.rowGroupIndex >= this.metadata.row_groups.length) {
         return null;
       }
@@ -67,8 +69,9 @@ export class ParquetCursor<T> implements AsyncIterable<T> {
       );
       this.rowGroup = Shred.materializeRecords(this.schema, rowBuffer);
       this.rowGroupIndex++;
+      this.cursorIndex = 0;
     }
-    return this.rowGroup.shift() as any;
+    return this.rowGroup[this.cursorIndex++] as any;
   }
 
   /**
