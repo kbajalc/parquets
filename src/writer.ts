@@ -1,4 +1,4 @@
-import { Transform, Writable } from 'stream';
+import { Transform, TransformCallback, Writable } from 'stream';
 import { ParquetCodecOptions, PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
 import { ParquetBuffer, ParquetCodec, ParquetData, ParquetField, PrimitiveType } from './declare';
@@ -290,9 +290,9 @@ export class ParquetTransformer<T> extends Transform {
   }
 
   // tslint:disable-next-line:function-name
-  _transform(row: any, encoding: string, callback: (val?: any) => void) {
+  _transform(row: any, encoding: string, callback: TransformCallback) {
     if (row) {
-      this.writer.appendRow(row).then(callback);
+      this.writer.appendRow(row).then(() => callback(), err => callback(err));
     } else {
       callback();
     }
