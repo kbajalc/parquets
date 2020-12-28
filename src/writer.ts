@@ -117,8 +117,18 @@ export class ParquetWriter<T> {
     }
     Shred.shredRecord(this.schema, row, this.rowBuffer);
     if (this.rowBuffer.rowCount >= this.rowGroupSize) {
-      await this.envelopeWriter.writeRowGroup(this.rowBuffer);
+      await this.flushRowBuffer();
+    }
+  }
+
+  /**
+   * Write any accumulated rows out immediately
+   */
+  async flushRowBuffer(): Promise<void> {
+    if (this.rowBuffer.rowCount) {
+      const prevBuffer = this.rowBuffer;
       this.rowBuffer = {};
+      await this.envelopeWriter.writeRowGroup(prevBuffer);
     }
   }
 
@@ -135,10 +145,7 @@ export class ParquetWriter<T> {
 
     this.closed = true;
 
-    if (this.rowBuffer.rowCount > 0 || this.rowBuffer.rowCount >= this.rowGroupSize) {
-      await this.envelopeWriter.writeRowGroup(this.rowBuffer);
-      this.rowBuffer = {};
-    }
+    await this.flushRowBuffer();
 
     await this.envelopeWriter.writeFooter(this.userMetadata);
     await this.envelopeWriter.close();
