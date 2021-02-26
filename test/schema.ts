@@ -11,12 +11,14 @@ describe('ParquetSchema', function () {
       name: { type: 'UTF8' },
       quantity: { type: 'INT64' },
       price: { type: 'DOUBLE' },
+      revenue: { type: 'DECIMAL', typeLength: 8, precision: 18, scale: 0 },
     });
 
-    assert.equal(schema.fieldList.length, 3);
+    assert.equal(schema.fieldList.length, 4);
     assert(schema.fields.name);
     assert(schema.fields.quantity);
     assert(schema.fields.price);
+    assert(schema.fields.revenue);
 
     {
       const c = schema.fields.name;
@@ -63,6 +65,23 @@ describe('ParquetSchema', function () {
       assert.equal(c.fieldCount, undefined);
     }
 
+    {
+      const c = schema.fields.revenue;
+      assert.equal(c.name, 'revenue');
+      assert.equal(c.primitiveType, 'FIXED_LEN_BYTE_ARRAY');
+      assert.equal(c.originalType, 'DECIMAL');
+      assert.equal(c.typeLength, 8);
+      assert.equal(c.precision, 18);
+      assert.equal(c.scale, 0);
+      assert.deepEqual(c.path, ['revenue']);
+      assert.equal(c.repetitionType, 'REQUIRED');
+      assert.equal(c.encoding, 'PLAIN');
+      assert.equal(c.compression, 'UNCOMPRESSED');
+      assert.equal(c.rLevelMax, 0);
+      assert.equal(c.dLevelMax, 0);
+      assert.equal(!!c.isNested, false);
+      assert.equal(c.fieldCount, undefined);
+    }
   });
 
   it('should assign correct defaults in a flat schema with optional fieldList', function () {
@@ -70,12 +89,14 @@ describe('ParquetSchema', function () {
       name: { type: 'UTF8' },
       quantity: { type: 'INT64', optional: true },
       price: { type: 'DOUBLE' },
+      revenue: { type: 'DECIMAL', typeLength: 8, precision: 18, scale: 0 },
     });
 
-    assert.equal(schema.fieldList.length, 3);
+    assert.equal(schema.fieldList.length, 4);
     assert(schema.fields.name);
     assert(schema.fields.quantity);
     assert(schema.fields.price);
+    assert(schema.fields.revenue);
 
     {
       const c = schema.fields.name;
@@ -121,6 +142,23 @@ describe('ParquetSchema', function () {
       assert.equal(!!c.isNested, false);
       assert.equal(c.fieldCount, undefined);
     }
+
+    {
+      const c = schema.fields.revenue;
+      assert.equal(c.name, 'revenue');
+      assert.equal(c.primitiveType, 'FIXED_LEN_BYTE_ARRAY');
+      assert.equal(c.originalType, 'DECIMAL');
+      assert.equal(c.precision, 18);
+      assert.equal(c.scale, 0);
+      assert.deepEqual(c.path, ['revenue']);
+      assert.equal(c.repetitionType, 'REQUIRED');
+      assert.equal(c.encoding, 'PLAIN');
+      assert.equal(c.compression, 'UNCOMPRESSED');
+      assert.equal(c.rLevelMax, 0);
+      assert.equal(c.dLevelMax, 0);
+      assert.equal(!!c.isNested, false);
+      assert.equal(c.fieldCount, undefined);
+    }
   });
 
   it('should assign correct defaults in a flat schema with repeated fieldList', function () {
@@ -128,9 +166,10 @@ describe('ParquetSchema', function () {
       name: { type: 'UTF8' },
       quantity: { type: 'INT64', repeated: true },
       price: { type: 'DOUBLE' },
+      revenue: { type: 'DECIMAL', typeLength: 8, precision: 18, scale: 0 },
     });
 
-    assert.equal(schema.fieldList.length, 3);
+    assert.equal(schema.fieldList.length, 4);
     assert(schema.fields.name);
     assert(schema.fields.quantity);
     assert(schema.fields.price);
@@ -171,6 +210,23 @@ describe('ParquetSchema', function () {
       assert.equal(c.primitiveType, 'DOUBLE');
       assert.equal(c.originalType, undefined);
       assert.deepEqual(c.path, ['price']);
+      assert.equal(c.repetitionType, 'REQUIRED');
+      assert.equal(c.encoding, 'PLAIN');
+      assert.equal(c.compression, 'UNCOMPRESSED');
+      assert.equal(c.rLevelMax, 0);
+      assert.equal(c.dLevelMax, 0);
+      assert.equal(!!c.isNested, false);
+      assert.equal(c.fieldCount, undefined);
+    }
+
+    {
+      const c = schema.fields.revenue;
+      assert.equal(c.name, 'revenue');
+      assert.equal(c.primitiveType, 'FIXED_LEN_BYTE_ARRAY');
+      assert.equal(c.originalType, 'DECIMAL');
+      assert.equal(c.precision, 18);
+      assert.equal(c.scale, 0);
+      assert.deepEqual(c.path, ['revenue']);
       assert.equal(c.repetitionType, 'REQUIRED');
       assert.equal(c.encoding, 'PLAIN');
       assert.equal(c.compression, 'UNCOMPRESSED');

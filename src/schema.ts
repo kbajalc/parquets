@@ -171,6 +171,8 @@ function buildFields(
       encoding: opts.encoding,
       compression: opts.compression,
       typeLength: opts.typeLength || typeDef.typeLength,
+      precision: opts.precision,
+      scale: opts.scale,
       rLevelMax,
       dLevelMax
     };

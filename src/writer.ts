@@ -358,7 +358,12 @@ function encodeDataPage(
     column.primitiveType,
     column.encoding,
     data.values,
-    { typeLength: column.typeLength, bitWidth: column.typeLength }
+    {
+      typeLength: column.typeLength,
+      bitWidth: column.typeLength,
+      precision: column.precision,
+      scale: column.scale
+    }
   );
 
   const dataBuf = Buffer.concat([
@@ -600,7 +605,9 @@ function encodeFooter(schema: ParquetSchema, rowCount: number, rowGroups: RowGro
     const relt = FieldRepetitionType[field.repetitionType];
     const schemaElem = new SchemaElement({
       name: field.name,
-      repetition_type: relt as any
+      repetition_type: relt as any,
+      precision: field.precision as number,
+      scale: field.scale as number
     });
 
     if (field.isNested) {

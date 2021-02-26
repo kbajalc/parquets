@@ -8,6 +8,8 @@ export interface CursorBuffer {
 
 export interface ParquetCodecOptions {
   bitWidth?: number;
+  precision?: number;
+  scale?: number;
   disableEnvelope?: boolean;
   typeLength?: number;
 }
