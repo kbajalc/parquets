@@ -22,7 +22,7 @@ export type OriginalType =
   // | 'MAP_KEY_VALUE' // 2
   // | 'LIST' // 3
   // | 'ENUM' // 4
-  // | 'DECIMAL' // 5
+  | 'DECIMAL' // 5
   | 'DATE' // 6
   | 'TIME_MILLIS' // 7
   | 'TIME_MICROS' // 8
@@ -47,6 +47,8 @@ export interface SchemaDefinition {
 export interface FieldDefinition {
   type?: ParquetType;
   typeLength?: number;
+  precision?: number;
+  scale?: number;
   encoding?: ParquetCodec;
   compression?: ParquetCompression;
   optional?: boolean;
@@ -62,6 +64,8 @@ export interface ParquetField {
   originalType?: OriginalType;
   repetitionType: RepetitionType;
   typeLength?: number;
+  precision?: number;
+  scale?: number;
   encoding?: ParquetCodec;
   compression?: ParquetCompression;
   rLevelMax: number;

@@ -5,6 +5,8 @@ export interface ParquetTypeKit {
   primitiveType: PrimitiveType;
   originalType?: OriginalType;
   typeLength?: number;
+  precision?: number;
+  scale?: number;
   toPrimitive: Function;
   fromPrimitive?: Function;
 }
@@ -128,6 +130,11 @@ export const PARQUET_LOGICAL_TYPES: Record<ParquetType, ParquetTypeKit> = {
     originalType: 'BSON',
     toPrimitive: toPrimitive_BSON,
     fromPrimitive: fromPrimitive_BSON
+  },
+  DECIMAL: {
+    primitiveType: 'FIXED_LEN_BYTE_ARRAY',
+    originalType: 'DECIMAL',
+    toPrimitive: toPrimitive_DECIMAL,
   },
   INTERVAL: {
     primitiveType: 'FIXED_LEN_BYTE_ARRAY',
@@ -405,4 +412,22 @@ function fromPrimitive_INTERVAL(value: any) {
   const millis = buf.readUInt32LE(8);
 
   return { months, days, milliseconds: millis };
+}
+
+function toPrimitive_DECIMAL(value: any) {
+  const v = value < 0 ? -(value) : value
+  const buf = Buffer.alloc(8)
+
+  buf.writeInt32BE(v, 4)
+
+  if(value < 0) {
+    let p = 1
+    for (var i = 7; i >= 0; i--) {
+      var q = (buf[i] ^ 255) + p
+      p = (q > 255) ? 1 : 0
+      buf[i] = p ? 0 : q
+    }
+  }
+
+  return buf
 }
