@@ -1,12 +1,33 @@
 import { CursorBuffer, ParquetCodecOptions, PARQUET_CODEC } from './codec';
 import * as Compression from './compression';
-import { ParquetBuffer, ParquetCodec, ParquetCompression, ParquetData, ParquetField, ParquetRecord, ParquetType, PrimitiveType, SchemaDefinition } from './declare';
+import {
+  ParquetBuffer,
+  ParquetCodec,
+  ParquetCompression,
+  ParquetData,
+  ParquetField,
+  ParquetRecord,
+  ParquetType,
+  PrimitiveType,
+  SchemaDefinition,
+} from './declare';
 import { ParquetSchema } from './schema';
 import * as Shred from './shred';
 // tslint:disable-next-line:max-line-length
-import { ColumnChunk, CompressionCodec, ConvertedType, Encoding, FieldRepetitionType, FileMetaData, PageHeader, PageType, RowGroup, SchemaElement, Type } from './thrift';
+import {
+  ColumnChunk,
+  CompressionCodec,
+  ConvertedType,
+  Encoding,
+  FieldRepetitionType,
+  FileMetaData,
+  PageHeader,
+  PageType,
+  RowGroup,
+  SchemaElement,
+  Type,
+} from './thrift';
 import * as Util from './util';
-// import Fs = require('fs');
 
 /**
  * Parquet File Magic String
@@ -28,7 +49,6 @@ const PARQUET_RDLVL_ENCODING = 'RLE';
  * A parquet cursor is used to retrieve rows from a parquet file in order
  */
 export class ParquetCursor<T> implements AsyncIterable<T> {
-
   public metadata: FileMetaData;
   public envelopeReader: ParquetEnvelopeReader;
   public schema: ParquetSchema;
@@ -42,7 +62,12 @@ export class ParquetCursor<T> implements AsyncIterable<T> {
    * advanced and internal use cases. Consider using getCursor() on the
    * ParquetReader instead
    */
-  constructor(metadata: FileMetaData, envelopeReader: ParquetEnvelopeReader, schema: ParquetSchema, columnList: string[][]) {
+  constructor(
+    metadata: FileMetaData,
+    envelopeReader: ParquetEnvelopeReader,
+    schema: ParquetSchema,
+    columnList: string[][]
+  ) {
     this.metadata = metadata;
     this.envelopeReader = envelopeReader;
     this.schema = schema;
@@ -116,7 +141,6 @@ export class ParquetCursor<T> implements AsyncIterable<T> {
  * avoid leaking file descriptors.
  */
 export class ParquetReader<T> implements AsyncIterable<T> {
-
   /**
    * Open the parquet file pointed to by the specified path and return a new
    * parquet reader
@@ -177,7 +201,9 @@ export class ParquetReader<T> implements AsyncIterable<T> {
    * names means that only those columns should be loaded from disk.
    */
   getCursor(): ParquetCursor<T>;
-  getCursor<K extends keyof T>(columnList: (K | K[])[]): ParquetCursor<Pick<T, K>>;
+  getCursor<K extends keyof T>(
+    columnList: (K | K[])[]
+  ): ParquetCursor<Pick<T, K>>;
   getCursor(columnList: (string | string[])[]): ParquetCursor<Partial<T>>;
   getCursor(columnList?: (string | string[])[]): ParquetCursor<Partial<T>> {
     if (!columnList) {
@@ -248,7 +274,6 @@ export class ParquetReader<T> implements AsyncIterable<T> {
  * rows from a parquet file use the ParquetReader instead
  */
 export class ParquetEnvelopeReader {
-
   static async openFile(filePath: string): Promise<ParquetEnvelopeReader> {
     const fileStat = await Util.fstat(filePath);
     const fileDescriptor = await Util.fopen(filePath);
@@ -259,6 +284,14 @@ export class ParquetEnvelopeReader {
     return new ParquetEnvelopeReader(readFn, closeFn, fileStat.size);
   }
 
+  /**
+   * Read parquet data from an in-memory buffer.  This provides an asynchronous
+   * interface compatible with reading from a file.
+   *
+   * Note that you can also use ParquetEnvelopeBufferReader if you don't need your code to be able
+   * to handle files and buffers both.  It may offer some performance benefit because it does not yield
+   * to the event loop in between operations.
+   */
   static async openBuffer(buffer: Buffer): Promise<ParquetEnvelopeReader> {
     const readFn = (position: number, length: number) =>
       Promise.resolve(buffer.slice(position, position + length));
@@ -270,8 +303,7 @@ export class ParquetEnvelopeReader {
     public read: (position: number, length: number) => Promise<Buffer>,
     public close: () => Promise<void>,
     public fileSize: number
-  ) {
-  }
+  ) {}
 
   async readHeader(): Promise<void> {
     const buf = await this.read(0, PARQUET_MAGIC.length);
@@ -281,7 +313,11 @@ export class ParquetEnvelopeReader {
     }
   }
 
-  async readRowGroup(schema: ParquetSchema, rowGroup: RowGroup, columnList: string[][]): Promise<ParquetBuffer> {
+  async readRowGroup(
+    schema: ParquetSchema,
+    rowGroup: RowGroup,
+    columnList: string[][]
+  ): Promise<ParquetBuffer> {
     const buffer: ParquetBuffer = {
       rowCount: +rowGroup.num_rows,
       columnData: {}
@@ -292,33 +328,25 @@ export class ParquetEnvelopeReader {
       if (columnList.length > 0 && Util.fieldIndexOf(columnList, colKey) < 0) {
         continue;
       }
-      buffer.columnData[colKey.join()] = await this.readColumnChunk(schema, colChunk);
+      buffer.columnData[colKey.join()] = await this.readColumnChunk(
+        schema,
+        colChunk
+      );
     }
     return buffer;
   }
 
-  async readColumnChunk(schema: ParquetSchema, colChunk: ColumnChunk): Promise<ParquetData> {
+  async readColumnChunk(
+    schema: ParquetSchema,
+    colChunk: ColumnChunk
+  ): Promise<ParquetData> {
     if (colChunk.file_path !== undefined && colChunk.file_path !== null) {
       throw new Error('external references are not supported');
     }
-
-    const field = schema.findField(colChunk.meta_data.path_in_schema);
-    const type: PrimitiveType = Util.getThriftEnum(
-      Type,
-      colChunk.meta_data.type
-    ) as any;
-    if (type !== field.primitiveType) throw new Error('chunk type not matching schema: ' + type);
-
-    const compression: ParquetCompression = Util.getThriftEnum(
-      CompressionCodec,
-      colChunk.meta_data.codec
-    ) as any;
-
     const pagesOffset = +colChunk.meta_data.data_page_offset;
     const pagesSize = +colChunk.meta_data.total_compressed_size;
     const pagesBuf = await this.read(pagesOffset, pagesSize);
-
-    return decodeDataPages(pagesBuf, field, compression);
+    return decodeColumnChunk(schema, colChunk, pagesBuf);
   }
 
   async readFooter(): Promise<FileMetaData> {
@@ -341,31 +369,325 @@ export class ParquetEnvelopeReader {
     const { metadata } = Util.decodeFileMetadata(metadataBuf);
     return metadata;
   }
+}
 
+/**
+ * A parquet cursor is used to retrieve rows from a parquet file in order
+ */
+export class ParquetBufferCursor<T> implements Iterable<T> {
+  public metadata: FileMetaData;
+  public envelopeReader: ParquetEnvelopeBufferReader;
+  public schema: ParquetSchema;
+  public columnList: string[][];
+  public rows: ParquetRecord[];
+  public rowsIndex: number;
+  public cursorIndex: number;
+
+  /**
+   * Create a new parquet reader from the file metadata and an envelope reader.
+   * It is usually not recommended to call this constructor directly except for
+   * advanced and internal use cases. Consider using getCursor() on the
+   * ParquetReader instead
+   */
+  constructor(
+    metadata: FileMetaData,
+    envelopeReader: ParquetEnvelopeBufferReader,
+    schema: ParquetSchema,
+    columnList: string[][]
+  ) {
+    this.metadata = metadata;
+    this.envelopeReader = envelopeReader;
+    this.schema = schema;
+    this.columnList = columnList;
+    this.rows = [];
+    this.rowsIndex = 0;
+    this.cursorIndex = 0;
+  }
+
+  /**
+   * Retrieve the next row from the cursor. Returns a row or NULL if the end
+   * of the file was reached
+   */
+  next<T = any>(): T {
+    if (this.cursorIndex >= this.rows.length) {
+      if (this.rowsIndex >= this.metadata.row_groups.length) {
+        return null;
+      }
+      const rowBuffer = this.envelopeReader.readRowGroup(
+        this.schema,
+        this.metadata.row_groups[this.rowsIndex],
+        this.columnList
+      );
+      this.rows = Shred.materializeRecords(this.schema, rowBuffer);
+      this.rowsIndex++;
+      this.cursorIndex = 0;
+    }
+    return this.rows[this.cursorIndex++] as any;
+  }
+
+  /**
+   * Rewind the cursor the the beginning of the file
+   */
+  rewind(): void {
+    this.rows = [];
+    this.rowsIndex = 0;
+  }
+
+  /**
+   * Implement Iterable
+   */
+  // tslint:disable-next-line:function-name
+  [Symbol.iterator](): Iterator<T> {
+    let done = false;
+    return {
+      next: () => {
+        if (done) {
+          return { done, value: null };
+        }
+        const value = this.next();
+        if (value === null) {
+          return { done: true, value };
+        }
+        return { done: false, value };
+      },
+      return: () => {
+        done = true;
+        return { done, value: null };
+      },
+      throw: () => {
+        done = true;
+        return { done: true, value: null };
+      },
+    };
+  }
+}
+
+/**
+ * A parquet reader allows retrieving the rows from a parquet file in order.
+ * The basic usage is to create a reader and then retrieve a cursor/iterator
+ * which allows you to consume row after row until all rows have been read. It is
+ * important that you call close() after you are finished reading the file to
+ * avoid leaking file descriptors.
+ */
+export class ParquetBufferReader<T> implements Iterable<T> {
+  static openBuffer<T>(buffer: Buffer): ParquetBufferReader<T> {
+    return new ParquetBufferReader(buffer);
+  }
+
+  public metadata: FileMetaData;
+  public envelopeReader: ParquetEnvelopeBufferReader;
+  public schema: ParquetSchema;
+
+  /**
+   * Create a new parquet reader from a buffer.  This version of ParquetReader
+   * runs synchronously so it may be more efficient when reading from a Buffer.
+   *
+   * However, it doesn't have a compatible API with ParquetReader.
+   */
+  constructor(public buffer: Buffer) {
+    this.envelopeReader = new ParquetEnvelopeBufferReader(buffer);
+    this.metadata = this.envelopeReader.readFooter();
+    if (this.metadata.version !== PARQUET_VERSION) {
+      throw new Error('invalid parquet version');
+    }
+    const root = this.metadata.schema[0];
+    const { schema } = decodeSchema(this.metadata.schema, 1, root.num_children);
+    this.schema = new ParquetSchema(schema);
+  }
+
+  /**
+   * Return a cursor to the buffer. You may open more than one cursor and use
+   * them concurrently.
+   *
+   * The required_columns parameter controls which columns are actually read
+   * from disk. An empty array or no value implies all columns. A list of column
+   * names means that only those columns should be loaded from disk.
+   *
+   * When columns contain records, you will need to specify each column as an array
+   * of strings specifying the "path" to the actual leaf column to fetch.
+   */
+  getCursor(): ParquetBufferCursor<T>;
+  getCursor<K extends keyof T>(
+    columnList: (K | K[])[]
+  ): ParquetBufferCursor<Pick<T, K>>;
+  getCursor(columnList: (string | string[])[]): ParquetBufferCursor<Partial<T>>;
+  getCursor(
+    columnList?: (string | string[])[]
+  ): ParquetBufferCursor<Partial<T>> {
+    const normalizedColumnList = (columnList || []).map(x =>
+      Array.isArray(x) ? x : [x]
+    );
+    return new ParquetBufferCursor<T>(
+      this.metadata,
+      this.envelopeReader,
+      this.schema,
+      normalizedColumnList
+    );
+  }
+
+  /**
+   * Return the number of rows in this file. Note that the number of rows is
+   * not necessarily equal to the number of rows in each column.
+   */
+  getRowCount(): number {
+    return +this.metadata.num_rows;
+  }
+
+  /**
+   * Returns the ParquetSchema for this file
+   */
+  getSchema(): ParquetSchema {
+    return this.schema;
+  }
+
+  /**
+   * Returns the user (key/value) metadata for this file
+   */
+  getMetadata(): Record<string, string> {
+    const md: Record<string, string> = {};
+    for (const kv of this.metadata.key_value_metadata) {
+      md[kv.key] = kv.value;
+    }
+    return md;
+  }
+
+  /**
+   * Implement Iterable
+   */
+  // tslint:disable-next-line:function-name
+  [Symbol.iterator](): Iterator<T> {
+    return this.getCursor()[Symbol.iterator]();
+  }
+}
+
+export class ParquetEnvelopeBufferReader {
+  constructor(public buffer: Buffer) {}
+
+  read(offset: number, length: number): Buffer {
+    return this.buffer.slice(offset, offset + length);
+  }
+
+  readHeader(): void {
+    const buf = this.read(0, PARQUET_MAGIC.length);
+
+    if (buf.toString() !== PARQUET_MAGIC) {
+      throw new Error('not valid parquet file');
+    }
+  }
+
+  readRowGroup(
+    schema: ParquetSchema,
+    rowGroup: RowGroup,
+    columnList: string[][]
+  ): ParquetBuffer {
+    const buffer: ParquetBuffer = {
+      rowCount: +rowGroup.num_rows,
+      columnData: {},
+    };
+    for (const colChunk of rowGroup.columns) {
+      const colMetadata = colChunk.meta_data;
+      const colKey = colMetadata.path_in_schema;
+      if (columnList.length > 0 && Util.fieldIndexOf(columnList, colKey) < 0) {
+        continue;
+      }
+      buffer.columnData[colKey.join()] = this.readColumnChunk(schema, colChunk);
+    }
+    return buffer;
+  }
+
+  readColumnChunk(schema: ParquetSchema, colChunk: ColumnChunk): ParquetData {
+    if (colChunk.file_path !== undefined && colChunk.file_path !== null) {
+      throw new Error('external references are not supported');
+    }
+    const pagesOffset = +colChunk.meta_data.data_page_offset;
+    const pagesSize = +colChunk.meta_data.total_compressed_size;
+    const pagesBuf = this.read(pagesOffset, pagesSize);
+    return decodeColumnChunk(schema, colChunk, pagesBuf);
+  }
+
+  readFooter(): FileMetaData {
+    const trailerLen = PARQUET_MAGIC.length + 4;
+    const trailerBuf = this.read(this.buffer.length - trailerLen, trailerLen);
+
+    if (trailerBuf.slice(4).toString() !== PARQUET_MAGIC) {
+      throw new Error('not a valid parquet file');
+    }
+
+    const metadataSize = trailerBuf.readUInt32LE(0);
+    const metadataOffset = this.buffer.length - metadataSize - trailerLen;
+    if (metadataOffset < PARQUET_MAGIC.length) {
+      throw new Error('invalid metadata size');
+    }
+
+    const metadataBuf = this.read(metadataOffset, metadataSize);
+    // let metadata = new parquet_thrift.FileMetaData();
+    // parquet_util.decodeThrift(metadata, metadataBuf);
+    const { metadata } = Util.decodeFileMetadata(metadataBuf);
+    return metadata;
+  }
+}
+
+/**
+ * Decode column chunk
+ *
+ * This calculates the field type and compression setting using
+ * the schema and column chunk metadata and calls decodeDataPages
+ * to do the heavy lifting.
+ */
+function decodeColumnChunk(
+  schema: ParquetSchema,
+  colChunk: ColumnChunk,
+  pagesBuf: Buffer
+): ParquetData {
+  const field = schema.findField(colChunk.meta_data.path_in_schema);
+  const type: PrimitiveType = Util.getThriftEnum(
+    Type,
+    colChunk.meta_data.type
+  ) as any;
+  if (type !== field.primitiveType) {
+    throw new Error('chunk type not matching schema: ' + type);
+  }
+
+  const compression: ParquetCompression = Util.getThriftEnum(
+    CompressionCodec,
+    colChunk.meta_data.codec
+  ) as any;
+
+  return decodeDataPages(pagesBuf, field, compression);
 }
 
 /**
  * Decode a consecutive array of data using one of the parquet encodings
  */
-function decodeValues(type: PrimitiveType, encoding: ParquetCodec, cursor: CursorBuffer, count: number, opts: ParquetCodecOptions): any[] {
+function decodeValues(
+  type: PrimitiveType,
+  encoding: ParquetCodec,
+  cursor: CursorBuffer,
+  count: number,
+  opts: ParquetCodecOptions
+): any[] {
   if (!(encoding in PARQUET_CODEC)) {
     throw new Error(`invalid encoding: ${encoding}`);
   }
   return PARQUET_CODEC[encoding].decodeValues(type, cursor, count, opts);
 }
 
-function decodeDataPages(buffer: Buffer, column: ParquetField, compression: ParquetCompression): ParquetData {
+function decodeDataPages(
+  buffer: Buffer,
+  column: ParquetField,
+  compression: ParquetCompression
+): ParquetData {
   const cursor: CursorBuffer = {
     buffer,
     offset: 0,
-    size: buffer.length
+    size: buffer.length,
   };
 
   const data: ParquetData = {
     rlevels: [],
     dlevels: [],
     values: [],
-    count: 0
+    count: 0,
   };
 
   while (cursor.offset < cursor.size) {
@@ -375,9 +697,7 @@ function decodeDataPages(buffer: Buffer, column: ParquetField, compression: Parq
     const { pageHeader, length } = Util.decodePageHeader(cursor.buffer);
     cursor.offset += length;
 
-    const pageType = Util.getThriftEnum(
-      PageType,
-      pageHeader.type);
+    const pageType = Util.getThriftEnum(PageType, pageHeader.type);
 
     let pageData: ParquetData = null;
     switch (pageType) {
@@ -400,7 +720,12 @@ function decodeDataPages(buffer: Buffer, column: ParquetField, compression: Parq
   return data;
 }
 
-function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: ParquetField, compression: ParquetCompression): ParquetData {
+function decodeDataPage(
+  cursor: CursorBuffer,
+  header: PageHeader,
+  column: ParquetField,
+  compression: ParquetCompression
+): ParquetData {
   const cursorEnd = cursor.offset + header.compressed_page_size;
   const valueCount = header.data_page_header.num_values;
 
@@ -431,7 +756,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: Parque
     dataCursor = {
       buffer: valuesBuf,
       offset: 0,
-      size: valuesBuf.length
+      size: valuesBuf.length,
     };
     cursor.offset = cursorEnd;
   }
@@ -451,7 +776,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: Parque
       valueCount,
       {
         bitWidth: Util.getBitWidth(column.rLevelMax),
-        disableEnvelope: false
+        disableEnvelope: false,
         // column: opts.column
       }
     );
@@ -474,7 +799,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: Parque
       valueCount,
       {
         bitWidth: Util.getBitWidth(column.dLevelMax),
-        disableEnvelope: false
+        disableEnvelope: false,
         // column: opts.column
       }
     );
@@ -500,7 +825,7 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: Parque
     valueCountNonNull,
     {
       typeLength: column.typeLength,
-      bitWidth: column.typeLength
+      bitWidth: column.typeLength,
     }
   );
 
@@ -512,11 +837,16 @@ function decodeDataPage(cursor: CursorBuffer, header: PageHeader, column: Parque
     dlevels: dLevels,
     rlevels: rLevels,
     values,
-    count: valueCount
+    count: valueCount,
   };
 }
 
-function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, column: ParquetField, compression: ParquetCompression): ParquetData {
+function decodeDataPageV2(
+  cursor: CursorBuffer,
+  header: PageHeader,
+  column: ParquetField,
+  compression: ParquetCompression
+): ParquetData {
   const cursorEnd = cursor.offset + header.compressed_page_size;
 
   const valueCount = header.data_page_header_v2.num_values;
@@ -537,8 +867,9 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, column: Parq
       valueCount,
       {
         bitWidth: Util.getBitWidth(column.rLevelMax),
-        disableEnvelope: true
-      });
+        disableEnvelope: true,
+      }
+    );
   } else {
     rLevels.fill(0);
   }
@@ -554,8 +885,9 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, column: Parq
       valueCount,
       {
         bitWidth: Util.getBitWidth(column.dLevelMax),
-        disableEnvelope: true
-      });
+        disableEnvelope: true,
+      }
+    );
   } else {
     dLevels.fill(0);
   }
@@ -573,7 +905,7 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, column: Parq
     valuesBufCursor = {
       buffer: valuesBuf,
       offset: 0,
-      size: valuesBuf.length
+      size: valuesBuf.length,
     };
 
     cursor.offset = cursorEnd;
@@ -586,7 +918,7 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, column: Parq
     valueCountNonNull,
     {
       typeLength: column.typeLength,
-      bitWidth: column.typeLength
+      bitWidth: column.typeLength,
     }
   );
 
@@ -594,11 +926,15 @@ function decodeDataPageV2(cursor: CursorBuffer, header: PageHeader, column: Parq
     dlevels: dLevels,
     rlevels: rLevels,
     values,
-    count: valueCount
+    count: valueCount,
   };
 }
 
-function decodeSchema(schemaElements: SchemaElement[], offset: number, len: number): {
+function decodeSchema(
+  schemaElements: SchemaElement[],
+  offset: number,
+  len: number
+): {
   offset: number;
   next: number;
   schema: SchemaDefinition;
@@ -608,10 +944,10 @@ function decodeSchema(schemaElements: SchemaElement[], offset: number, len: numb
   for (let i = 0; i < len; i++) {
     const schemaElement = schemaElements[next];
 
-    const repetitionType = next > 0 ? Util.getThriftEnum(
-      FieldRepetitionType,
-      schemaElement.repetition_type
-    ) : 'ROOT';
+    const repetitionType =
+      next > 0
+        ? Util.getThriftEnum(FieldRepetitionType, schemaElement.repetition_type)
+        : 'ROOT';
 
     let optional = false;
     let repeated = false;
@@ -637,24 +973,23 @@ function decodeSchema(schemaElements: SchemaElement[], offset: number, len: numb
         // type: undefined,
         optional,
         repeated,
-        fields: res.schema
+        fields: res.schema,
       };
     } else {
-      let logicalType = Util.getThriftEnum(
-        Type,
-        schemaElement.type);
+      let logicalType = Util.getThriftEnum(Type, schemaElement.type);
 
       if (schemaElement.converted_type != null) {
         logicalType = Util.getThriftEnum(
           ConvertedType,
-          schemaElement.converted_type);
+          schemaElement.converted_type
+        );
       }
 
       schema[schemaElement.name] = {
         type: logicalType as ParquetType,
         typeLength: schemaElement.type_length,
         optional,
-        repeated
+        repeated,
       };
       next++;
     }
