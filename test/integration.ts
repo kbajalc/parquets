@@ -24,32 +24,40 @@ function mkTestSchema(opts: TestOptions) {
     price: { type: 'DOUBLE', compression: opts.compression },
     date: { type: 'TIMESTAMP_MICROS', compression: opts.compression },
     day: { type: 'DATE', compression: opts.compression },
-    finger: { type: 'FIXED_LEN_BYTE_ARRAY', compression: opts.compression, typeLength: 5 },
+    finger: {
+      type: 'FIXED_LEN_BYTE_ARRAY',
+      compression: opts.compression,
+      typeLength: 5,
+    },
     inter: { type: 'INTERVAL', compression: opts.compression },
     stock: {
       repeated: true,
       fields: {
-        quantity: { type: 'INT64', repeated: true, compression: opts.compression },
+        quantity: {
+          type: 'INT64',
+          repeated: true,
+          compression: opts.compression,
+        },
         warehouse: { type: 'UTF8', compression: opts.compression },
         opts: {
           optional: true,
           fields: {
             a: { type: 'INT32', compression: opts.compression },
-            b: { type: 'INT32', optional: true, compression: opts.compression }
-          }
+            b: { type: 'INT32', optional: true, compression: opts.compression },
+          },
         },
         tags: {
           optional: true,
           repeated: true,
           fields: {
             name: { type: 'UTF8', compression: opts.compression },
-            val: { type: 'UTF8', compression: opts.compression }
-          }
-        }
-      }
+            val: { type: 'UTF8', compression: opts.compression },
+          },
+        },
+      },
     },
     colour: { type: 'UTF8', repeated: true, compression: opts.compression },
-    meta_json: { type: 'BSON', optional: true, compression: opts.compression }
+    meta_json: { type: 'BSON', optional: true, compression: opts.compression },
   });
 }
 
@@ -57,68 +65,70 @@ function mkTestRows() {
   const rows: any[] = [];
 
   for (let i = 0; i < TEST_NUM_ROWS; i++) {
-    rows.push({
-      name: 'apples',
-      quantity: 10,
-      price: 2.6,
-      day: new Date('2017-11-26'),
-      date: new Date(TEST_VTIME + 1000 * i),
-      finger: 'FNORD',
-      inter: { months: 42, days: 23, milliseconds: 777 },
-      stock: [
-        { quantity: 10, warehouse: 'A' },
-        { quantity: 20, warehouse: 'B', opts: { a: 1 }, tags: [{ name: 't', val: 'v' }] }
-      ],
-      colour: ['green', 'red']
-    });
-
-    rows.push({
-      name: 'oranges',
-      quantity: 20,
-      price: 2.7,
-      day: new Date('2017-11-26'),
-      date: new Date(TEST_VTIME + 2000 * i),
-      finger: 'FNORD',
-      inter: { months: 42, days: 23, milliseconds: 777 },
-      stock: {
-        quantity: [50, 33],
-        warehouse: 'X'
+    rows.push(
+      {
+        name: 'apples',
+        quantity: 10,
+        price: 2.6,
+        day: new Date('2017-11-26'),
+        date: new Date(TEST_VTIME + 1000 * i),
+        finger: Buffer.from('FNORD'),
+        inter: { months: 42, days: 23, milliseconds: 777 },
+        stock: [
+          { quantity: [10], warehouse: 'A' },
+          {
+            quantity: [20],
+            warehouse: 'B',
+            opts: { a: 1 },
+            tags: [{ name: 't', val: 'v' }],
+          },
+        ],
+        colour: ['green', 'red'],
       },
-      colour: ['orange']
-    });
-
-    rows.push({
-      name: 'kiwi',
-      price: 4.2,
-      quantity: undefined,
-      day: new Date('2017-11-26'),
-      date: new Date(TEST_VTIME + 8000 * i),
-      finger: 'FNORD',
-      inter: { months: 42, days: 23, milliseconds: 777 },
-      stock: [
-        { quantity: 42, warehouse: 'f' },
-        { quantity: 20, warehouse: 'x' }
-      ],
-      colour: ['green', 'brown'],
-      meta_json: { expected_ship_date: new Date(TEST_VTIME) }
-    });
-
-    rows.push({
-      name: 'banana',
-      price: 3.2,
-      day: new Date('2017-11-26'),
-      date: new Date(TEST_VTIME + 6000 * i),
-      finger: 'FNORD',
-      inter: { months: 42, days: 23, milliseconds: 777 },
-      colour: ['yellow'],
-      meta_json: { shape: 'curved' }
-    });
+      {
+        name: 'oranges',
+        quantity: 20,
+        price: 2.7,
+        day: new Date('2017-11-26'),
+        date: new Date(TEST_VTIME + 2000 * i),
+        finger: Buffer.from('FNORD'),
+        inter: { months: 42, days: 23, milliseconds: 777 },
+        stock: [{ quantity: [50, 33], warehouse: 'X' }],
+        colour: ['orange'],
+      },
+      {
+        name: 'kiwi',
+        price: 4.2,
+        day: new Date('2017-11-26'),
+        date: new Date(TEST_VTIME + 8000 * i),
+        finger: Buffer.from('FNORD'),
+        inter: { months: 42, days: 23, milliseconds: 777 },
+        stock: [
+          { quantity: [42], warehouse: 'f' },
+          { quantity: [20], warehouse: 'x' },
+        ],
+        colour: ['green', 'brown'],
+        meta_json: { expected_ship_date: new Date(TEST_VTIME) },
+      },
+      {
+        name: 'banana',
+        price: 3.2,
+        day: new Date('2017-11-26'),
+        date: new Date(TEST_VTIME + 6000 * i),
+        finger: Buffer.from('FNORD'),
+        inter: { months: 42, days: 23, milliseconds: 777 },
+        colour: ['yellow'],
+        meta_json: { shape: 'curved' },
+      }
+    );
   }
 
   return rows;
 }
 
-async function writeTestData(writer: parquet.ParquetWriter<unknown>, opts: TestOptions) {
+async function writeTestData(
+  writer: parquet.ParquetWriter<unknown>,
+) {
   writer.setMetadata('myuid', '420');
   writer.setMetadata('fnord', 'dronf');
   const rows = mkTestRows();
@@ -130,8 +140,12 @@ async function writeTestData(writer: parquet.ParquetWriter<unknown>, opts: TestO
 
 async function writeTestFile(opts: TestOptions) {
   const schema = mkTestSchema(opts);
-  const writer = await parquet.ParquetWriter.openFile(schema, 'fruits.parquet', opts);
-  await writeTestData(writer, opts);
+  const writer = await parquet.ParquetWriter.openFile(
+    schema,
+    'fruits.parquet',
+    opts
+  );
+  await writeTestData(writer);
 }
 
 async function readTestFile() {
@@ -139,7 +153,9 @@ async function readTestFile() {
   await checkTestData(reader);
 }
 
-async function checkTestData(reader: parquet.ParquetReader<unknown>) {
+function checkTestDataMetadata(
+  reader: parquet.ParquetReader<unknown> | parquet.ParquetBufferReader<unknown>
+) {
   assert.equal(reader.getRowCount(), TEST_NUM_ROWS * 4);
   assert.deepEqual(reader.getMetadata(), { myuid: '420', fnord: 'dronf' });
 
@@ -321,94 +337,83 @@ async function checkTestData(reader: parquet.ParquetReader<unknown>) {
     assert.equal(!!c.isNested, false);
     assert.equal(c.fieldCount, undefined);
   }
+}
 
-  {
-    const cursor = reader.getCursor();
-    for (let i = 0; i < TEST_NUM_ROWS; i++) {
-      assert.deepEqual(await cursor.next(), {
-        name: 'apples',
-        quantity: 10,
-        price: 2.6,
-        day: new Date('2017-11-26'),
-        date: new Date(TEST_VTIME + 1000 * i),
-        finger: Buffer.from('FNORD'),
-        inter: { months: 42, days: 23, milliseconds: 777 },
-        stock: [
-          { quantity: [10], warehouse: 'A' },
-          { quantity: [20], warehouse: 'B', opts: { a: 1 }, tags: [{ name: 't', val: 'v' }] }
-        ],
-        colour: ['green', 'red']
-      });
-
-      assert.deepEqual(await cursor.next(), {
-        name: 'oranges',
-        quantity: 20,
-        price: 2.7,
-        day: new Date('2017-11-26'),
-        date: new Date(TEST_VTIME + 2000 * i),
-        finger: Buffer.from('FNORD'),
-        inter: { months: 42, days: 23, milliseconds: 777 },
-        stock: [
-          { quantity: [50, 33], warehouse: 'X' }
-        ],
-        colour: ['orange']
-      });
-
-      assert.deepEqual(await cursor.next(), {
-        name: 'kiwi',
-        price: 4.2,
-        day: new Date('2017-11-26'),
-        date: new Date(TEST_VTIME + 8000 * i),
-        finger: Buffer.from('FNORD'),
-        inter: { months: 42, days: 23, milliseconds: 777 },
-        stock: [
-          { quantity: [42], warehouse: 'f' },
-          { quantity: [20], warehouse: 'x' }
-        ],
-        colour: ['green', 'brown'],
-        meta_json: { expected_ship_date: new Date(TEST_VTIME) }
-      });
-
-      assert.deepEqual(await cursor.next(), {
-        name: 'banana',
-        price: 3.2,
-        day: new Date('2017-11-26'),
-        date: new Date(TEST_VTIME + 6000 * i),
-        finger: Buffer.from('FNORD'),
-        inter: { months: 42, days: 23, milliseconds: 777 },
-        colour: ['yellow'],
-        meta_json: { shape: 'curved' }
-      });
-    }
-
-    assert.equal(await cursor.next(), null);
+async function checkTestDataAllFields(reader: parquet.ParquetReader<unknown>) {
+  const cursor = reader.getCursor();
+  for (const expected of mkTestRows()) {
+    assert.deepEqual(await cursor.next(), expected);
   }
+  assert.equal(await cursor.next(), null);
+}
 
-  {
-    const cursor = reader.getCursor(['name']);
-    for (let i = 0; i < TEST_NUM_ROWS; i++) {
-      assert.deepEqual(await cursor.next(), { name: 'apples' });
-      assert.deepEqual(await cursor.next(), { name: 'oranges' });
-      assert.deepEqual(await cursor.next(), { name: 'kiwi' });
-      assert.deepEqual(await cursor.next(), { name: 'banana' });
-    }
-
-    assert.equal(await cursor.next(), null);
+async function checkTestDataNameOnly(reader: parquet.ParquetReader<unknown>) {
+  const cursor = reader.getCursor(['name']);
+  for (const { name } of mkTestRows()) {
+    assert.deepEqual(await cursor.next(), { name });
   }
+  assert.equal(await cursor.next(), null);
+}
 
-  {
-    const cursor = reader.getCursor(['name', 'quantity']);
-    for (let i = 0; i < TEST_NUM_ROWS; i++) {
-      assert.deepEqual(await cursor.next(), { name: 'apples', quantity: 10 });
-      assert.deepEqual(await cursor.next(), { name: 'oranges', quantity: 20 });
-      assert.deepEqual(await cursor.next(), { name: 'kiwi' });
-      assert.deepEqual(await cursor.next(), { name: 'banana' });
-    }
-
-    assert.equal(await cursor.next(), null);
+async function checkTestDataNameAndQuantityOnly(
+  reader: parquet.ParquetReader<unknown>
+) {
+  const cursor = reader.getCursor(['name', 'quantity']);
+  for (const { name, quantity } of mkTestRows()) {
+    assert.deepEqual(
+      await cursor.next(),
+      typeof quantity !== 'undefined' ? { name, quantity } : { name }
+    );
   }
+  assert.equal(await cursor.next(), null);
+}
 
+async function checkTestData(reader: parquet.ParquetReader<unknown>) {
+  checkTestDataMetadata(reader);
+  await checkTestDataAllFields(reader);
+  await checkTestDataNameOnly(reader);
+  await checkTestDataNameAndQuantityOnly(reader);
   await reader.close();
+}
+
+function checkTestDataFromBufferAllFields(
+  reader: parquet.ParquetBufferReader<unknown>
+) {
+  const cursor = reader.getCursor();
+  for (const expected of mkTestRows()) {
+    assert.deepEqual(cursor.next(), expected);
+  }
+  assert.equal(cursor.next(), null);
+}
+
+function checkTestDataFromBufferNameOnly(
+  reader: parquet.ParquetBufferReader<unknown>
+) {
+  const cursor = reader.getCursor(['name']);
+  for (const { name } of mkTestRows()) {
+    assert.deepEqual(cursor.next(), { name });
+  }
+  assert.equal(cursor.next(), null);
+}
+
+function checkTestDataFromBufferNameAndQuantityOnly(
+  reader: parquet.ParquetBufferReader<unknown>
+) {
+  const cursor = reader.getCursor(['name', 'quantity']);
+  for (const { name, quantity } of mkTestRows()) {
+    assert.deepEqual(
+      cursor.next(),
+      typeof quantity !== 'undefined' ? { name, quantity } : { name }
+    );
+  }
+  assert.equal(cursor.next(), null);
+}
+
+function checkTestDataFromBuffer(reader: parquet.ParquetBufferReader<unknown>) {
+  checkTestDataMetadata(reader);
+  checkTestDataFromBufferAllFields(reader);
+  checkTestDataFromBufferNameOnly(reader);
+  checkTestDataFromBufferNameAndQuantityOnly(reader);
 }
 
 // tslint:disable:ter-prefer-arrow-callback
@@ -417,39 +422,74 @@ describe('Parquet', function () {
 
   describe('with DataPageHeaderV1', function () {
     it('write a test file', function () {
-      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = {
+        useDataPageV2: false,
+        compression: 'UNCOMPRESSED',
+      };
       return writeTestFile(opts);
     });
 
     it('write a test file and then read it back', function () {
-      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = {
+        useDataPageV2: false,
+        compression: 'UNCOMPRESSED',
+      };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write an empty test file and then read it back', async function () {
-      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = {
+        useDataPageV2: false,
+        compression: 'UNCOMPRESSED',
+      };
       const schema = mkTestSchema(opts);
-      const writer = await parquet.ParquetWriter.openFile(schema, 'empty.parquet', opts);
+      const writer = await parquet.ParquetWriter.openFile(
+        schema,
+        'empty.parquet',
+        opts
+      );
       await writer.close();
       const reader = await parquet.ParquetReader.openFile('empty.parquet');
       expect(reader.getRowCount()).toBe(0);
     });
 
     it('write an empty test file with empty schema and then read it back', async function () {
-      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = {
+        useDataPageV2: false,
+        compression: 'UNCOMPRESSED',
+      };
       const schema = new parquet.ParquetSchema({});
-      const writer = await parquet.ParquetWriter.openFile(schema, 'empty.parquet', opts);
+      const writer = await parquet.ParquetWriter.openFile(
+        schema,
+        'empty.parquet',
+        opts
+      );
       await writer.close();
       const reader = await parquet.ParquetReader.openFile('empty.parquet');
       expect(reader.getRowCount()).toBe(0);
     });
 
-    it('supports reading from a buffer', function () {
-      const opts: TestOptions = { useDataPageV2: false, compression: 'UNCOMPRESSED' };
+    it('supports reading from a buffer asynchronously', function () {
+      const opts: TestOptions = {
+        useDataPageV2: false,
+        compression: 'UNCOMPRESSED',
+      };
       return writeTestFile(opts).then(async function () {
         const data = await promisify(fs.readFile)('fruits.parquet');
         const reader = await parquet.ParquetReader.openBuffer(data);
         await checkTestData(reader);
+      });
+    });
+
+    it('supports reading from a buffer synchronously', function () {
+      const opts: TestOptions = {
+        useDataPageV2: false,
+        compression: 'UNCOMPRESSED',
+      };
+      return writeTestFile(opts).then(async function () {
+        const data = await promisify(fs.readFile)('fruits.parquet');
+        const reader = await parquet.ParquetBufferReader.openBuffer(data);
+        await checkTestDataFromBuffer(reader);
       });
     });
 
@@ -481,23 +521,40 @@ describe('Parquet', function () {
 
   describe('with DataPageHeaderV2', function () {
     it('write a test file and then read it back', function () {
-      const opts: TestOptions = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = {
+        useDataPageV2: true,
+        compression: 'UNCOMPRESSED',
+      };
       return writeTestFile(opts).then(readTestFile);
     });
 
     it('write an empty test file and then read it back', async function () {
-      const opts: TestOptions = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = {
+        useDataPageV2: true,
+        compression: 'UNCOMPRESSED',
+      };
       const schema = mkTestSchema(opts);
-      const writer = await parquet.ParquetWriter.openFile(schema, 'empty.parquet', opts);
+      const writer = await parquet.ParquetWriter.openFile(
+        schema,
+        'empty.parquet',
+        opts
+      );
       await writer.close();
       const reader = await parquet.ParquetReader.openFile('empty.parquet');
       expect(reader.getRowCount()).toBe(0);
     });
 
     it('write an empty test file with empty schema and then read it back', async function () {
-      const opts: TestOptions = { useDataPageV2: true, compression: 'UNCOMPRESSED' };
+      const opts: TestOptions = {
+        useDataPageV2: true,
+        compression: 'UNCOMPRESSED',
+      };
       const schema = new parquet.ParquetSchema({});
-      const writer = await parquet.ParquetWriter.openFile(schema, 'empty.parquet', opts);
+      const writer = await parquet.ParquetWriter.openFile(
+        schema,
+        'empty.parquet',
+        opts
+      );
       await writer.close();
       const reader = await parquet.ParquetReader.openFile('empty.parquet');
       expect(reader.getRowCount()).toBe(0);
@@ -526,7 +583,6 @@ describe('Parquet', function () {
       const opts: TestOptions = { useDataPageV2: true, compression: 'LZ4' };
       return writeTestFile(opts).then(readTestFile);
     });
-
   });
 
   describe('using the Stream/Transform API', function () {
@@ -548,9 +604,13 @@ describe('Parquet', function () {
     describe('using the AsyncIterable API', function () {
       it('allows iteration on a cursor using for-await-of', async function () {
         await writeTestFile({ useDataPageV2: true, compression: 'GZIP' });
-        const reader = await parquet.ParquetReader.openFile<{ name: string }>('fruits.parquet');
+        const reader = await parquet.ParquetReader.openFile<{ name: string }>(
+          'fruits.parquet'
+        );
 
-        async function checkTestDataUsingForAwaitOf(cursor: AsyncIterable<{ name: string }>) {
+        async function checkTestDataUsingForAwaitOf(
+          cursor: AsyncIterable<{ name: string }>
+        ) {
           const names: Set<string> = new Set();
           let rowCount = 0;
           for await (const row of cursor) {
@@ -558,7 +618,10 @@ describe('Parquet', function () {
             rowCount++;
           }
           assert.equal(rowCount, TEST_NUM_ROWS * names.size);
-          assert.deepEqual(names, new Set(['apples', 'oranges', 'kiwi', 'banana']));
+          assert.deepEqual(
+            names,
+            new Set(['apples', 'oranges', 'kiwi', 'banana'])
+          );
         }
 
         // Works with reader (will return all columns)
