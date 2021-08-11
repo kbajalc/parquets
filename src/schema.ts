@@ -1,6 +1,14 @@
 import { PARQUET_CODEC } from './codec';
 import { PARQUET_COMPRESSION_METHODS } from './compression';
-import { FieldDefinition, ParquetBuffer, ParquetCompression, ParquetField, ParquetRecord, RepetitionType, SchemaDefinition } from './declare';
+import {
+  FieldDefinition,
+  ParquetBuffer,
+  ParquetCompression,
+  ParquetField,
+  ParquetRecord,
+  RepetitionType,
+  SchemaDefinition,
+} from './declare';
 import { materializeRecords, shredBuffer, shredRecord } from './shred';
 import { PARQUET_LOGICAL_TYPES } from './types';
 
@@ -23,43 +31,44 @@ export class ParquetSchema {
 
   /**
    * Retrieve a field definition
+   *
+   * If a string is provided it will be split using comma as a separator to
+   * give the field path to look for.
+   *
+   * The code assumes the given field path is valid and a TypeError will
+   * be thrown as a side effect if the field path isn't found in the schema.
    */
   findField(path: string): ParquetField;
   findField(path: string[]): ParquetField;
   findField(path: any): ParquetField {
-    if (path.constructor !== Array) {
-      // tslint:disable-next-line:no-parameter-reassignment
-      path = path.split(',');
-    } else {
-      // tslint:disable-next-line:no-parameter-reassignment
-      path = path.slice(0); // clone array
-    }
-
-    let n = this.fields;
-    for (; path.length > 1; path.shift()) {
-      n = n[path[0]].fields;
-    }
-
-    return n[path[0]];
+    return (Array.isArray(path) ? path : path.split(',')).reduce(
+      (field: ParquetField | ParquetSchema, segment: string) =>
+        field.fields[segment],
+      this
+    ) as ParquetField;
   }
 
   /**
    * Retrieve a field definition and all the field's ancestors
+   *
+   * If a string is provided it will be split using comma as a separator to
+   * give the field path to look for.
+   *
+   * The resulting array will have one ParquetField per segment of the
+   * provided path.
+   *
+   * The code assumes the given field path is valid and a TypeError will
+   * be thrown as a side effect if the field path isn't found in the schema.
    */
   findFieldBranch(path: string): ParquetField[];
   findFieldBranch(path: string[]): ParquetField[];
   findFieldBranch(path: any): any[] {
-    if (path.constructor !== Array) {
-      // tslint:disable-next-line:no-parameter-reassignment
-      path = path.split(',');
-    }
     const branch = [];
-    let n = this.fields;
-    for (; path.length > 0; path.shift()) {
-      branch.push(n[path[0]]);
-      if (path.length > 1) {
-        n = n[path[0]].fields;
-      }
+    // tslint:disable-next-line:no-this-assignment
+    let field: ParquetField | ParquetSchema = this;
+    for (const segment of Array.isArray(path) ? path : path.split(',')) {
+      field = field.fields[segment];
+      branch.push(field);
     }
     return branch;
   }
@@ -134,12 +143,7 @@ function buildFields(
         dLevelMax,
         isNested: true,
         fieldCount: Object.keys(opts.fields).length,
-        fields: buildFields(
-          opts.fields,
-          rLevelMax,
-          dLevelMax,
-          cpath
-        )
+        fields: buildFields(opts.fields, rLevelMax, dLevelMax, cpath),
       };
       continue;
     }
@@ -172,7 +176,7 @@ function buildFields(
       compression: opts.compression,
       typeLength: opts.typeLength || typeDef.typeLength,
       rLevelMax,
-      dLevelMax
+      dLevelMax,
     };
   }
   return fieldList;
